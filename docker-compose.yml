@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # PostgreSQL - основная база данных
@@ -49,6 +48,9 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
+    volumes:
+      - sqlite-data:/app/data
 
 volumes:
   pgdata:
+  sqlite-data: 
