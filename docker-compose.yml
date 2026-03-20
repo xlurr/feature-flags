@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - основная база данных
+  postgres:
+    image: postgres:16-alpine
+    container_name: ff-postgres
+    environment:
+      POSTGRES_DB: ff_manager
+      POSTGRES_USER: ff_user
+      POSTGRES_PASSWORD: ff_secret_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ff_user -d ff_manager"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Go Backend (API)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ff-backend
+    environment:
+      PORT: "8080"
+      DATABASE_URL: "postgres://ff_user:ff_secret_password@postgres:5432/ff_manager?sslmode=disable"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # React Frontend (Vite + Express)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ff-frontend
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
