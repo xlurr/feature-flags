@@ -1,6 +1,53 @@
 # ff-manager
 
-Feature flags management panel. Go backend, React frontend, PostgreSQL + SQLite.
+Веб-панель для управления feature flags — механизма, который позволяет включать и выключать функции в приложении без деплоя. Удобно для A/B-тестирования, постепенного rollout новых фич и быстрого отката в случае проблем.
+
+Проект состоит из двух независимых частей: Go-backend с REST API и React-фронтенд с Express-сервером. Обе части запускаются через Docker Compose.
+
+---
+
+## Что реализовано
+
+### Backend (Go)
+
+- REST API на chi router
+- CORS-настройка для фронтенда
+- Доменная модель: проекты, окружения, флаги, состояния флагов, аудит, пользователи
+- Порты и адаптеры (чистая архитектура) — слои domain / ports / adapters разделены
+- Публичный Eval API — отдаёт состояние всех флагов по API-ключу окружения
+- Health-check endpoint
+- Структурированные JSON-логи через slog
+
+### Frontend (React + Express)
+
+- SPA на React 18 + Vite + Tailwind + shadcn/ui
+- Express-сервер для раздачи статики и API
+- SQLite через Drizzle ORM с автомиграциями при старте
+- Drizzle-zod схемы для валидации
+
+### Страницы
+
+- Dashboard — статистика по проекту: всего флагов, активных в production, событий аудита, прогресс-бары по окружениям, лента последних изменений
+- Feature Flags — список флагов с поиском, создание/удаление, переключение по окружениям, targeting rules, rollout weight
+- Audit Log — полная история изменений с фильтрацией по типу события (CREATE, DELETE, TOGGLE, UPDATE_RULES)
+- Settings — страница настроек (заготовка)
+
+### Инфраструктура
+
+- Docker Compose с тремя сервисами: postgres, backend, frontend
+- Многоэтапные Dockerfile для Go и Node
+- PostgreSQL 16 с автоинициализацией через init.sql
+- SQLite в именованном Docker volume (данные не теряются при перезапуске)
+
+---
+
+## Что не реализовано (заготовки в коде)
+
+- Аутентификация и авторизация (модели User/Role есть, логика — нет)
+- Репозитории PostgreSQL (интерфейсы описаны, имплементации нет)
+- Сервисный слой Go (интерфейсы описаны, имплементации нет)
+- Реальное подключение backend к базе (main.go — заглушка)
+- Targeting rules и rollout weight на уровне Eval API
 
 ---
 
@@ -63,46 +110,22 @@ go run ./cmd/server
 
 ---
 
-## Функции
-
-### Dashboard
-
-Показывает общее число флагов, количество активных флагов в production, число событий аудита, статистику по окружениям и последние изменения.
-
-### Feature Flags
-
-Позволяет искать флаги по имени и ключу, создавать и удалять флаги, переключать их состояние по окружениям, работать с targeting rules и rollout weight.
-
-### Audit Log
-
-Показывает историю изменений: кто, что и когда изменил. Типы событий: CREATE, DELETE, TOGGLE, UPDATE_RULES.
-
-### Eval API
-
-Публичный endpoint для получения состояния флагов по API-ключу окружения.
-
-GET /eval/:apiKey
-
-Ответ: { "flag_key": true }
-
----
-
 ## Структура проекта
 
 ff-manager/
 ├── backend/
-│ ├── cmd/server/
+│ ├── cmd/server/ # точка входа
 │ ├── internal/
-│ │ ├── adapters/http/
-│ │ ├── domain/
-│ │ └── ports/
-│ └── migrations/
+│ │ ├── adapters/http/ # HTTP-хендлеры
+│ │ ├── domain/ # сущности
+│ │ └── ports/ # интерфейсы репозиториев и сервисов
+│ └── migrations/ # SQL-миграции PostgreSQL
 ├── client/
 │ └── src/
-│ ├── pages/
-│ └── components/
-├── server/
-├── shared/
+│ ├── pages/ # Dashboard, Flags, Audit, Settings
+│ └── components/ # UI-компоненты (shadcn/ui)
+├── server/ # Express + SQLite
+├── shared/ # schema.ts (Drizzle + Zod)
 ├── Dockerfile.frontend
 ├── backend/Dockerfile
 └── docker-compose.yml
@@ -112,5 +135,5 @@ ff-manager/
 ## Нюансы
 
 - SQLite хранится в Docker volume и не теряется после docker-compose down
-- PostgreSQL инициализируется миграцией из backend/migrations
+- PostgreSQL инициализируется миграцией из backend/migrations автоматически
 - version в docker-compose.yml убран — в Compose v2 он устарел
