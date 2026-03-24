@@ -1,39 +1,69 @@
 
-*.env.local
-*.sh
-*.DS_Store
-*.bak
+# ff-manager .gitignore
 
-# Node.js / npm
+
+# ── Окружение / секреты 
+.env
+.env.*
+!.env.example
+*.env.local
+
+# ── Скрипты (apply_*.sh и прочие) 
+*.sh
+
+# ── Go 
+backend/bin/
+backend/tmp/
+backend/*.exe
+backend/*.test
+backend/*.out
+backend/vendor/
+# Air (live reload)
+tmp/
+air.toml.bak
+
+# ── Node.js / npm / yarn 
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
+yarn.lock
 
-# Frontend Vite/React
+# ── Frontend Vite/React 
 frontend/dist/
 frontend/.vite/
 frontend/node_modules/
 
-# Сборки и кэш
+# ── Сборки и кэш 
 dist/
 build/
 coverage/
+.cache/
 
-# IDE/редакторы
+# ── Docker 
+docker-compose.override.yml
+
+# ── База данных / миграции (локальные дампы) 
+*.sql.bak
+*.dump
+pgdata/
+
+# ── IDE / редакторы 
 .vscode/settings.json
 .idea/
 *.swp
 *.swo
+*.bak
 
-# ОС Mac/Windows
+# ── ОС 
 .DS_Store
 .DS_Store?
 ._*
 Thumbs.db
 ehthumbs.db
 
-# Логи/временные
+# ── Логи / временные
 *.log
 *.tmp
 *~

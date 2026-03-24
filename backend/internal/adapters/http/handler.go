@@ -24,17 +24,11 @@ func NewHandler(
 	ds ports.DashboardService,
 	logger *slog.Logger,
 ) *Handler {
-	return &Handler{
-		flagService:      fs,
-		auditService:     as,
-		dashboardService: ds,
-		logger:           logger,
-	}
+	return &Handler{flagService: fs, auditService: as, dashboardService: ds, logger: logger}
 }
 
 func (h *Handler) Router() chi.Router {
 	r := chi.NewRouter()
-
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
@@ -47,6 +41,10 @@ func (h *Handler) Router() chi.Router {
 		MaxAge:           300,
 	}))
 
+	// FIX 1: /eval и /health на корневом уровне, вне /api
+	r.Get("/health", h.healthCheck)
+	r.Get("/eval/{apiKey}", h.evalFlags)
+
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/dashboard/{projectID}", h.getDashboard)
 		r.Get("/flags/{projectID}", h.getFlags)
@@ -54,10 +52,12 @@ func (h *Handler) Router() chi.Router {
 		r.Delete("/flags/{id}", h.deleteFlag)
 		r.Put("/flags/{flagID}/toggle/{envID}", h.toggleFlag)
 		r.Get("/audit", h.getAudit)
-		r.Get("/eval/{apiKey}", h.evalFlags)
 	})
-
 	return r
+}
+
+func (h *Handler) healthCheck(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "service": "ff-manager"})
 }
 
 func (h *Handler) getDashboard(w http.ResponseWriter, r *http.Request) {
