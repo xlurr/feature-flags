@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend:
+    name: Go Build & Vet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: backend/go.sum
+
+      - name: Download deps
+        working-directory: backend
+        run: go mod download
+
+      - name: Build
+        working-directory: backend
+        run: CGO_ENABLED=0 go build ./...
+
+      - name: Vet
+        working-directory: backend
+        run: go vet ./...
+
+  frontend:
+    name: Node Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+
+  docker:
+    name: Docker Compose Build
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build images
+        run: docker compose build --no-cache
+
+      - name: Start stack
+        run: docker compose up -d
+
+      - name: Wait for healthy
+        run: |
+          echo "Waiting for backend..."
+          for i in $(seq 1 30); do
+            curl -sf http://localhost/health && echo "OK" && break
+            sleep 2
+          done
+
+      - name: Health check
+        run: curl -sf http://localhost/health | grep '"status":"ok"'
+
+      - name: Eval API check
+        run: curl -sf http://localhost/eval/prod-key-001
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v
