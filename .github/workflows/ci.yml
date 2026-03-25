@@ -57,17 +57,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create .env для CI
+        run: |
+          cat > .env << 'ENVEOF'
+          POSTGRES_PASSWORD=ci_test_password
+          POSTGRES_USER=ff_user
+          POSTGRES_DB=ff_manager
+          ENVEOF
+
       - name: Build images
         run: docker compose build --no-cache
 
       - name: Start stack
         run: docker compose up -d
 
-      - name: Wait for healthy
+      - name: Wait for backend
         run: |
-          echo "Waiting for backend..."
           for i in $(seq 1 30); do
-            curl -sf http://localhost/health && echo "OK" && break
+            curl -sf http://localhost/health && break
+            echo "Attempt $i..."
             sleep 2
           done
 
