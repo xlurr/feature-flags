@@ -7,7 +7,6 @@ import {
   Gear,
   SignOut,
 } from "@phosphor-icons/react";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
 
 const NAV_ITEMS = [
   { path: "/", label: "Дашборд", icon: ChartBar },
@@ -86,7 +85,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden bg-background">
         {children}
-        <PerplexityAttribution />
       </main>
     </div>
   );

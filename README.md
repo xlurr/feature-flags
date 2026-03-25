@@ -1,139 +1,165 @@
-# ff-manager
+# FF Manager
 
-Веб-панель для управления feature flags — механизма, который позволяет включать и выключать функции в приложении без деплоя. Удобно для A/B-тестирования, постепенного rollout новых фич и быстрого отката в случае проблем.
+> Веб-панель для управления feature flags - включай и выключай фичи в приложении без деплоя.
 
-Проект состоит из двух независимых частей: Go-backend с REST API и React-фронтенд с Express-сервером. Обе части запускаются через Docker Compose.
 
----
 
-## Что реализовано
+Подходит для A/B-тестирования, постепенного rollout новых возможностей и быстрого отката в случае инцидента.
 
-### Backend (Go)
+***
 
-- REST API на chi router
-- CORS-настройка для фронтенда
-- Доменная модель: проекты, окружения, флаги, состояния флагов, аудит, пользователи
-- Порты и адаптеры (чистая архитектура) — слои domain / ports / adapters разделены
-- Публичный Eval API — отдаёт состояние всех флагов по API-ключу окружения
-- Health-check endpoint
-- Структурированные JSON-логи через slog
+## Быстрый старт
 
-### Frontend (React + Express)
-
-- SPA на React 18 + Vite + Tailwind + shadcn/ui
-- Express-сервер для раздачи статики и API
-- SQLite через Drizzle ORM с автомиграциями при старте
-- Drizzle-zod схемы для валидации
-
-### Страницы
-
-- Dashboard — статистика по проекту: всего флагов, активных в production, событий аудита, прогресс-бары по окружениям, лента последних изменений
-- Feature Flags — список флагов с поиском, создание/удаление, переключение по окружениям, targeting rules, rollout weight
-- Audit Log — полная история изменений с фильтрацией по типу события (CREATE, DELETE, TOGGLE, UPDATE_RULES)
-- Settings — страница настроек (заготовка)
-
-### Инфраструктура
-
-- Docker Compose с тремя сервисами: postgres, backend, frontend
-- Многоэтапные Dockerfile для Go и Node
-- PostgreSQL 16 с автоинициализацией через init.sql
-- SQLite в именованном Docker volume (данные не теряются при перезапуске)
-
----
-
-## Что не реализовано (заготовки в коде)
-
-- Аутентификация и авторизация (модели User/Role есть, логика — нет)
-- Репозитории PostgreSQL (интерфейсы описаны, имплементации нет)
-- Сервисный слой Go (интерфейсы описаны, имплементации нет)
-- Реальное подключение backend к базе (main.go — заглушка)
-- Targeting rules и rollout weight на уровне Eval API
-
----
-
-## Stack
-
-| Layer    | Tech                                          |
-| -------- | --------------------------------------------- |
-| Frontend | React 18, Vite, Tailwind, shadcn/ui           |
-| Server   | Express + better-sqlite3 (SQLite)             |
-| Backend  | Go 1.22, chi router                           |
-| Database | PostgreSQL 16 (flags), SQLite (sessions/seed) |
-| Infra    | Docker Compose                                |
-
----
-
-## Запуск
-
-**Требования:** Docker Desktop, Node.js 20+, Go 1.22+
-
-### Docker
+**Требования:** Docker Desktop
 
 ```bash
-npm install
-npx drizzle-kit generate
+git clone https://github.com/xlurr/ff-manager
+cd ff-manager
 docker-compose up --build
 ```
 
-Сервисы:
+Открыть: [**http://localhost**](http://localhost)
 
-- Frontend - http://localhost:3000
-- Backend API - http://localhost:8080
-- PostgreSQL - localhost:5432
+***
 
-### Локально
+## Что работает сейчас
+
+### Backend (Go 1.22)
+
+- **Чистая архитектура** - domain / ports / services / adapters полностью разделены
+- **Сервисный слой** - `FlagService`, `AuditService`, `DashboardService` с бизнес-логикой
+- **Eval API** - `GET /eval/{apiKey}` возвращает состояние всех флагов по API-ключу окружения
+- **Rollout weight** - вероятностное включение флага через CRC32 хэш
+- **Audit log** - каждый CREATE / DELETE / TOGGLE записывается автоматически
+- **Health check** - `GET /health` с реальным ping к PostgreSQL
+- **Graceful shutdown** - корректное завершение по SIGINT / SIGTERM
+- **JSON-логи** через `log/slog`
+
+### Frontend (React 18 + Express)
+
+- SPA на **React 18 + Vite + Tailwind + shadcn/ui**
+- **Dashboard** - всего флагов, активных в production, событий аудита, прогресс по окружениям, лента последних изменений
+- **Feature Flags** - список с поиском, создание / удаление, переключение по окружениям
+- **Audit Log** - полная история изменений (CREATE, DELETE, TOGGLE, UPDATE_RULES)
+- **Settings** - окружения с API-ключами
+
+### Инфраструктура
+
+- **Nginx** как единая точка входа на порту 80 - роутит `/api/*` и `/eval/*` на Go backend
+- **PostgreSQL 16** - основная БД с автоинициализацией seed-данных
+- **Docker Compose** с 4 сервисами: nginx, backend, frontend, postgres
+
+***
+
+## API Endpoints
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| `GET` | `/health` | Статус сервиса + ping БД |
+| `GET` | `/eval/{apiKey}` | Все флаги по API-ключу |
+| `GET` | `/api/dashboard/{projectId}` | Статистика проекта |
+| `GET` | `/api/flags/{projectId}` | Список флагов со states |
+| `POST` | `/api/flags` | Создать флаг |
+| `DELETE` | `/api/flags/{id}` | Удалить флаг |
+| `PUT` | `/api/flags/{flagId}/toggle/{envId}` | Переключить флаг |
+| `GET` | `/api/environments/{projectId}` | Список окружений |
+| `GET` | `/api/audit` | Лента аудита (последние 50) |
+
+### Пример Eval API
 
 ```bash
-npm install
-npx drizzle-kit generate
-npx drizzle-kit push
-npm run dev
+curl http://localhost/eval/prod-key-001
+# {"zendesk-ai-bot": true, "stripe-checkout-v2": true, "new-dashboard": false}
 ```
 
-Отдельно backend:
+***
 
-```bash
-cd backend
-go run ./cmd/server
-```
+## Stack
 
----
+| Слой | Технологии |
+|------|-----------|
+| Frontend | React 18, Vite, TanStack Query, Tailwind, shadcn/ui |
+| Frontend server | Express + better-sqlite3 |
+| Backend | Go 1.22, chi router, pgx/v5 |
+| База данных | PostgreSQL 16 |
+| Прокси | Nginx 1.27 |
+| Инфраструктура | Docker Compose, многоэтапные сборки |
 
-## Переменные окружения
-
-| Переменная   | Дефолт                                                     | Где      |
-| ------------ | ---------------------------------------------------------- | -------- |
-| PORT         | 3000                                                       | frontend |
-| PORT         | 8080                                                       | backend  |
-| DATABASE_URL | postgres://ffuser:ffsecretpassword@postgres:5432/ffmanager | backend  |
-| NODE_ENV     | development                                                | frontend |
-
----
+***
 
 ## Структура проекта
 
+```
 ff-manager/
 ├── backend/
-│ ├── cmd/server/ # точка входа
-│ ├── internal/
-│ │ ├── adapters/http/ # HTTP-хендлеры
-│ │ ├── domain/ # сущности
-│ │ └── ports/ # интерфейсы репозиториев и сервисов
-│ └── migrations/ # SQL-миграции PostgreSQL
-├── client/
-│ └── src/
-│ ├── pages/ # Dashboard, Flags, Audit, Settings
-│ └── components/ # UI-компоненты (shadcn/ui)
-├── server/ # Express + SQLite
-├── shared/ # schema.ts (Drizzle + Zod)
+│   ├── cmd/server/          # main.go - точка входа, DI
+│   ├── internal/
+│   │   ├── domain/          # сущности + sentinel errors
+│   │   ├── ports/           # интерфейсы репозиториев и сервисов
+│   │   ├── services/        # бизнес-логика (Flag, Audit, Dashboard)
+│   │   └── adapters/
+│   │       ├── http/        # chi-хендлеры
+│   │       └── postgres/    # pgx-репозитории
+│   └── migrations/
+│       └── 001_init.sql     # схема + seed данные
+├── client/src/
+│   ├── pages/               # Dashboard, Flags, Audit, Settings
+│   └── components/ui/       # shadcn/ui компоненты
+├── nginx/
+│   └── nginx.conf
+├── server/                  # Express + SQLite
+├── shared/schema.ts
 ├── Dockerfile.frontend
 ├── backend/Dockerfile
 └── docker-compose.yml
+```
 
----
+***
 
-## Нюансы
+## Переменные окружения
 
-- SQLite хранится в Docker volume и не теряется после docker-compose down
-- PostgreSQL инициализируется миграцией из backend/migrations автоматически
-- version в docker-compose.yml убран — в Compose v2 он устарел
+| Переменная | Значение | Сервис |
+|---|---|---|
+| `PORT` | `8080` | backend |
+| `DATABASE_URL` | `postgres://ff_user:ff_secret_password@postgres:5432/ff_manager` | backend |
+| `PORT` | `3000` | frontend |
+| `NODE_ENV` | `production` | frontend |
+
+***
+
+## Seed данные
+
+При первом запуске PostgreSQL создаёт проект `00000000-0000-0000-0000-000000000001`:
+
+| Окружение | API-ключ |
+|---|---|
+| Development | `dev-key-001` |
+| Staging | `stg-key-001` |
+| Production | `prod-key-001` |
+
+***
+
+## Roadmap
+
+- [ ] **Stage 4** - InMemoryCache для Eval API
+- [ ] **Stage 5** - SSE endpoint для realtime обновлений UI
+- [ ] **Stage 6** - Аутентификация (JWT), роли Admin / Viewer
+- [ ] **Stage 7** - Targeting rules: rollout по userId, % трафика
+- [ ] **Stage 8** - SDK-клиент (Go / TypeScript)
+- [ ] **Stage 9** - Метрики (Prometheus) + трейсинг (OpenTelemetry)
+- [ ] **Stage 10** - Мультипроектность через UI
+
+***
+
+## Локальная разработка
+
+```bash
+# Frontend
+npm install && npm run dev
+
+# Backend
+cd backend && go run ./cmd/server
+
+# Только база
+docker-compose up postgres
+```

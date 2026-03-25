@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -15,6 +16,7 @@ type Handler struct {
 	flagService      ports.FlagService
 	auditService     ports.AuditService
 	dashboardService ports.DashboardService
+	dbPing           func(ctx context.Context) error
 	logger           *slog.Logger
 }
 
@@ -22,9 +24,13 @@ func NewHandler(
 	fs ports.FlagService,
 	as ports.AuditService,
 	ds ports.DashboardService,
+	dbPing func(ctx context.Context) error,
 	logger *slog.Logger,
 ) *Handler {
-	return &Handler{flagService: fs, auditService: as, dashboardService: ds, logger: logger}
+	return &Handler{
+		flagService: fs, auditService: as, dashboardService: ds,
+		dbPing: dbPing, logger: logger,
+	}
 }
 
 func (h *Handler) Router() chi.Router {
@@ -33,15 +39,16 @@ func (h *Handler) Router() chi.Router {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
+	// FIX2: AllowCredentials true, убран wildcard origin
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   []string{"http://localhost"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
-		AllowCredentials: false,
+		AllowedHeaders:   []string{"Accept", "Content-Type"},
+		AllowCredentials: true,
 		MaxAge:           300,
 	}))
 
-	// FIX 1: /eval и /health на корневом уровне, вне /api
+	// FIX1: /eval и /health — корневой уровень, вне /api
 	r.Get("/health", h.healthCheck)
 	r.Get("/eval/{apiKey}", h.evalFlags)
 
@@ -52,12 +59,21 @@ func (h *Handler) Router() chi.Router {
 		r.Delete("/flags/{id}", h.deleteFlag)
 		r.Put("/flags/{flagID}/toggle/{envID}", h.toggleFlag)
 		r.Get("/audit", h.getAudit)
+		// FIX-ENV: endpoint для settings/flags страниц
+		r.Get("/environments/{projectID}", h.getEnvironments)
 	})
 	return r
 }
 
 func (h *Handler) healthCheck(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "service": "ff-manager"})
+	if err := h.dbPing(r.Context()); err != nil {
+		h.logger.Error("health check: db ping failed", "err", err)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+			"status": "error", "db": err.Error(),
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "db": "connected"})
 }
 
 func (h *Handler) getDashboard(w http.ResponseWriter, r *http.Request) {
@@ -80,6 +96,17 @@ func (h *Handler) getFlags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, flags)
+}
+
+func (h *Handler) getEnvironments(w http.ResponseWriter, r *http.Request) {
+	projectID := chi.URLParam(r, "projectID")
+	envs, err := h.flagService.ListEnvironments(r.Context(), projectID)
+	if err != nil {
+		h.logger.Error("get environments error", "err", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
+		return
+	}
+	writeJSON(w, http.StatusOK, envs)
 }
 
 type createFlagRequest struct {
@@ -116,7 +143,7 @@ func (h *Handler) deleteFlag(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) toggleFlag(w http.ResponseWriter, r *http.Request) {
 	flagID := chi.URLParam(r, "flagID")
-	envID := chi.URLParam(r, "envID")
+	envID  := chi.URLParam(r, "envID")
 	state, err := h.flagService.ToggleFlag(r.Context(), flagID, envID)
 	if err != nil {
 		h.logger.Error("toggle flag error", "err", err)

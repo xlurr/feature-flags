@@ -5,7 +5,7 @@ import { Key, Users, Globe } from "@phosphor-icons/react";
 
 export default function SettingsPage() {
   const { data: envs, isLoading: envsLoading } = useQuery<Environment[]>({
-    queryKey: ["/api/environments/1"],
+    queryKey: ["/api/environments/00000000-0000-0000-0000-000000000001"],
   });
 
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({

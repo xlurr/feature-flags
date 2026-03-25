@@ -54,7 +54,7 @@ function EnvProgressBar({ name, active, total }: { name: string; active: number;
 
 export default function DashboardPage() {
   const { data, isLoading } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/1"],
+    queryKey: ["/api/dashboard/00000000-0000-0000-0000-000000000001"],
   });
 
   if (isLoading || !data) {

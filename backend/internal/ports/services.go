@@ -6,7 +6,7 @@ import (
 	"github.com/xlurr/ff-manager/internal/domain"
 )
 
-// FlagService - интерфейс бизнес-логики флагов
+// FlagService — интерфейс бизнес-логики флагов.
 type FlagService interface {
 	ListFlags(ctx context.Context, projectID string) ([]domain.FlagWithStates, error)
 	GetFlag(ctx context.Context, id string) (*domain.FlagWithStates, error)
@@ -14,15 +14,17 @@ type FlagService interface {
 	DeleteFlag(ctx context.Context, id string) error
 	ToggleFlag(ctx context.Context, flagID, envID string) (*domain.FlagState, error)
 	EvaluateFlags(ctx context.Context, apiKey string) (map[string]bool, error)
+	// FIX-ENV: нужен для GET /api/environments/{projectID}
+	ListEnvironments(ctx context.Context, projectID string) ([]domain.Environment, error)
 }
 
-// AuditService - интерфейс бизнес-логики аудита
+// AuditService — интерфейс бизнес-логики аудита.
 type AuditService interface {
 	GetEvents(ctx context.Context, limit int) ([]domain.AuditEventFull, error)
 	LogEvent(ctx context.Context, event *domain.AuditEvent) error
 }
 
-// DashboardService - интерфейс дашборда
+// DashboardService — интерфейс дашборда.
 type DashboardService interface {
 	GetStats(ctx context.Context, projectID string) (*domain.DashboardStats, error)
 }

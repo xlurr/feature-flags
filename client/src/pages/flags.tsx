@@ -21,17 +21,17 @@ export default function FlagsPage() {
   const [newFlag, setNewFlag] = useState({ name: "", key: "", description: "" });
 
   const { data: flags, isLoading } = useQuery<FlagWithStates[]>({
-    queryKey: ["/api/flags/1"],
+    queryKey: ["/api/flags/00000000-0000-0000-0000-000000000001"],
   });
 
   const { data: envs } = useQuery<Environment[]>({
-    queryKey: ["/api/environments/1"],
+    queryKey: ["/api/environments/00000000-0000-0000-0000-000000000001"],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: { name: string; key: string; description: string }) => {
       const res = await apiRequest("POST", "/api/flags", {
-        projectId: 1,
+        projectId: "00000000-0000-0000-0000-000000000001",
         flagKey: data.key,
         name: data.name,
         description: data.description,
@@ -39,8 +39,8 @@ export default function FlagsPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/flags/1"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/1"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/flags/00000000-0000-0000-0000-000000000001"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/00000000-0000-0000-0000-000000000001"] });
       setShowCreate(false);
       setNewFlag({ name: "", key: "", description: "" });
       toast({ title: "Флаг создан" });
@@ -48,24 +48,24 @@ export default function FlagsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/flags/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/flags/1"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/1"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/flags/00000000-0000-0000-0000-000000000001"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/00000000-0000-0000-0000-000000000001"] });
       toast({ title: "Флаг удален" });
     },
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ flagId, envId }: { flagId: number; envId: number }) => {
+    mutationFn: async ({ flagId, envId }: { flagId: string; envId: string }) => {
       const res = await apiRequest("PUT", `/api/flags/${flagId}/toggle/${envId}`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/flags/1"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/1"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/flags/00000000-0000-0000-0000-000000000001"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/00000000-0000-0000-0000-000000000001"] });
     },
   });
 
