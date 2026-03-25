@@ -1,5 +1,7 @@
 # FF Manager
 
+![FF Manager Dashboard](docs/dashboard.png)
+
 > Веб-панель для управления feature flags - включай и выключай фичи в приложении без деплоя.
 
 
