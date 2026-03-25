@@ -203,8 +203,8 @@ export default function FlagsPage() {
                               onClick={() => {
                                 if (activeEnvObj) {
                                   toggleMutation.mutate({
-                                    flagId: flag.id,
-                                    envId: activeEnvObj.id,
+                                    flagId: String(flag.id),
+                                    envId: String(activeEnvObj.id),
                                   });
                                 }
                               }}
@@ -223,7 +223,7 @@ export default function FlagsPage() {
                               {isEnabled ? "Включен" : "Выключен"}
                             </button>
                             <button
-                              onClick={() => deleteMutation.mutate(flag.id)}
+                              onClick={() => deleteMutation.mutate(String(flag.id))}
                               className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors opacity-0 group-hover:opacity-100"
                               data-testid={`delete-flag-${flag.id}`}
                             >
