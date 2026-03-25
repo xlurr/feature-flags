@@ -67,4 +67,4 @@ ehthumbs.db
 *.log
 *.tmp
 *~
-*.sh
+*.sh.env

@@ -3,14 +3,14 @@ services:
     image: postgres:16-alpine
     container_name: ff-postgres
     environment:
-      POSTGRES_DB: ff_manager
-      POSTGRES_USER: ff_user
-      POSTGRES_PASSWORD: ff_secret_password
+      POSTGRES_DB: ${POSTGRES_DB:-ff_manager}
+      POSTGRES_USER: ${POSTGRES_USER:-ff_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ff_user -d ff_manager"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ff_user} -d ${POSTGRES_DB:-ff_manager}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,7 +23,7 @@ services:
     container_name: ff-backend
     environment:
       PORT: "8080"
-      DATABASE_URL: "postgres://ff_user:ff_secret_password@postgres:5432/ff_manager?sslmode=disable"
+      DATABASE_URL: "postgres://${POSTGRES_USER:-ff_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ff_manager}?sslmode=disable"
     depends_on:
       postgres:
         condition: service_healthy
