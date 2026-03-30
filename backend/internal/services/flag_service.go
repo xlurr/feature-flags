@@ -152,7 +152,7 @@ func (s *FlagService) EvaluateFlags(ctx context.Context, apiKey string) (map[str
 		}
 		result[f.FlagKey] = evaluateState(&st)
 	}
-	s.cache.Set(ctx, apiKey, result)
+	s.cache.Set(ctx, apiKey, env.ID, env.ProjectID, result)
 	s.logger.Info("eval cache miss", "apiKey", apiKey, "flags", len(result))
 	return result, nil
 }

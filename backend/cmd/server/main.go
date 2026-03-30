@@ -49,7 +49,7 @@ func main() {
 	dashboardRepo := postgres.NewDashboardRepo(pool, auditRepo)
 
 	// Cache (NoopCache — заменяется на InMemoryCache в Stage 4)
-	cache := services.NewNoopCache()
+	cache := services.NewInMemoryCache(5*time.Minute, logger)
 
 	// Services
 	flagSvc      := services.NewFlagService(flagRepo, flagStateRepo, envRepo, auditRepo, cache, logger)
