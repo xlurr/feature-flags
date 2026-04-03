@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/xlurr/ff-manager/internal/ports"
+	"github.com/xlurr/ff-manager/internal/services"
 )
 
 type Handler struct {
@@ -17,7 +18,8 @@ type Handler struct {
 	auditService     ports.AuditService
 	dashboardService ports.DashboardService
 	dbPing           func(ctx context.Context) error
-	logger           *slog.Logger
+	eventBus         *services.EventBus
+	logger           *slog.Logger // pointer — как возвращает slog.New()
 }
 
 func NewHandler(
@@ -25,33 +27,45 @@ func NewHandler(
 	as ports.AuditService,
 	ds ports.DashboardService,
 	dbPing func(ctx context.Context) error,
+	eventBus *services.EventBus,
 	logger *slog.Logger,
 ) *Handler {
 	return &Handler{
-		flagService: fs, auditService: as, dashboardService: ds,
-		dbPing: dbPing, logger: logger,
+		flagService:      fs,
+		auditService:     as,
+		dashboardService: ds,
+		dbPing:           dbPing,
+		eventBus:         eventBus,
+		logger:           logger,
 	}
 }
 
 func (h *Handler) Router() chi.Router {
 	r := chi.NewRouter()
+
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
-	// FIX2: AllowCredentials true, убран wildcard origin
+
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost"},
+		AllowedOrigins:   []string{"http://localhost", "http://localhost:5173"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
 
-	// FIX1: /eval и /health — корневой уровень, вне /api
+	// ── Публичные маршруты (без JWT) ─────────────────────────
 	r.Get("/health", h.healthCheck)
 	r.Get("/eval/{apiKey}", h.evalFlags)
 
+	// Stage 5: SSE — зарегистрирован ДО /api/ Route-группы.
+	// В Stage 6 JWTMiddleware добавится ТОЛЬКО внутрь r.Route("/api/", ...),
+	// этот маршрут остаётся публичным.
+	r.Get("/api/stream/{projectID}", h.streamEvents)
+
+	// ── Защищённые маршруты (Stage 6: добавить r.Use(JWTMiddleware) здесь) ──
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/dashboard/{projectID}", h.getDashboard)
 		r.Get("/flags/{projectID}", h.getFlags)
@@ -59,18 +73,16 @@ func (h *Handler) Router() chi.Router {
 		r.Delete("/flags/{id}", h.deleteFlag)
 		r.Put("/flags/{flagID}/toggle/{envID}", h.toggleFlag)
 		r.Get("/audit", h.getAudit)
-		// FIX-ENV: endpoint для settings/flags страниц
 		r.Get("/environments/{projectID}", h.getEnvironments)
 	})
+
 	return r
 }
 
 func (h *Handler) healthCheck(w http.ResponseWriter, r *http.Request) {
 	if err := h.dbPing(r.Context()); err != nil {
-		h.logger.Error("health check: db ping failed", "err", err)
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
-			"status": "error", "db": err.Error(),
-		})
+		h.logger.Error("health check db ping failed", slog.Any("err", err))
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "error", "db": err.Error()})
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "db": "connected"})
@@ -80,7 +92,7 @@ func (h *Handler) getDashboard(w http.ResponseWriter, r *http.Request) {
 	projectID := chi.URLParam(r, "projectID")
 	stats, err := h.dashboardService.GetStats(r.Context(), projectID)
 	if err != nil {
-		h.logger.Error("dashboard error", "err", err)
+		h.logger.Error("dashboard error", slog.Any("err", err))
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
@@ -91,7 +103,7 @@ func (h *Handler) getFlags(w http.ResponseWriter, r *http.Request) {
 	projectID := chi.URLParam(r, "projectID")
 	flags, err := h.flagService.ListFlags(r.Context(), projectID)
 	if err != nil {
-		h.logger.Error("list flags error", "err", err)
+		h.logger.Error("list flags error", slog.Any("err", err))
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
@@ -102,7 +114,7 @@ func (h *Handler) getEnvironments(w http.ResponseWriter, r *http.Request) {
 	projectID := chi.URLParam(r, "projectID")
 	envs, err := h.flagService.ListEnvironments(r.Context(), projectID)
 	if err != nil {
-		h.logger.Error("get environments error", "err", err)
+		h.logger.Error("get environments error", slog.Any("err", err))
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
@@ -124,7 +136,7 @@ func (h *Handler) createFlag(w http.ResponseWriter, r *http.Request) {
 	}
 	flag, err := h.flagService.CreateFlag(r.Context(), req.ProjectID, req.FlagKey, req.Name, req.Description)
 	if err != nil {
-		h.logger.Error("create flag error", "err", err)
+		h.logger.Error("create flag error", slog.Any("err", err))
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
@@ -134,7 +146,7 @@ func (h *Handler) createFlag(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) deleteFlag(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := h.flagService.DeleteFlag(r.Context(), id); err != nil {
-		h.logger.Error("delete flag error", "err", err)
+		h.logger.Error("delete flag error", slog.Any("err", err))
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
@@ -146,7 +158,7 @@ func (h *Handler) toggleFlag(w http.ResponseWriter, r *http.Request) {
 	envID  := chi.URLParam(r, "envID")
 	state, err := h.flagService.ToggleFlag(r.Context(), flagID, envID)
 	if err != nil {
-		h.logger.Error("toggle flag error", "err", err)
+		h.logger.Error("toggle flag error", slog.Any("err", err))
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
@@ -156,7 +168,7 @@ func (h *Handler) toggleFlag(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) getAudit(w http.ResponseWriter, r *http.Request) {
 	events, err := h.auditService.GetEvents(r.Context(), 50)
 	if err != nil {
-		h.logger.Error("audit error", "err", err)
+		h.logger.Error("audit error", slog.Any("err", err))
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}

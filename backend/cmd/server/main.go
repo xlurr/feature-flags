@@ -15,9 +15,8 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
+	// slog.New() возвращает *slog.Logger — передаём pointer напрямую
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -35,7 +34,7 @@ func main() {
 
 	pool, err := postgres.NewPool(ctx, dbURL)
 	if err != nil {
-		logger.Error("failed to connect to database", "err", err)
+		logger.Error("failed to connect to database", slog.Any("err", err))
 		os.Exit(1)
 	}
 	defer pool.Close()
@@ -48,30 +47,34 @@ func main() {
 	envRepo       := postgres.NewEnvRepo(pool)
 	dashboardRepo := postgres.NewDashboardRepo(pool, auditRepo)
 
-	// Cache (NoopCache — заменяется на InMemoryCache в Stage 4)
+	// Stage 4: InMemoryCache — принимает *slog.Logger
 	cache := services.NewInMemoryCache(5*time.Minute, logger)
 
-	// Services
-	flagSvc      := services.NewFlagService(flagRepo, flagStateRepo, envRepo, auditRepo, cache, logger)
+	// Stage 5: EventBus
+	eventBus := services.NewEventBus()
+
+	// Services — все принимают *slog.Logger (не *logger, а logger)
+	flagSvc      := services.NewFlagService(flagRepo, flagStateRepo, envRepo, auditRepo, cache, eventBus, logger)
 	auditSvc     := services.NewAuditService(auditRepo, logger)
 	dashboardSvc := services.NewDashboardService(dashboardRepo, logger)
 
-	// HTTP handler + router
-	handler := httpAdapter.NewHandler(flagSvc, auditSvc, dashboardSvc, pool.Ping, logger)
+	// HTTP handler
+	handler := httpAdapter.NewHandler(flagSvc, auditSvc, dashboardSvc, pool.Ping, eventBus, logger)
 	router  := handler.Router()
 
 	server := &http.Server{
-		Addr:         ":" + port,
-		Handler:      router,
+		Addr:    ":" + port,
+		Handler: router,
+		// WriteTimeout = 0 обязателен для SSE — long-lived connections
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		WriteTimeout: 0,
 		IdleTimeout:  60 * time.Second,
 	}
 
 	go func() {
-		logger.Info("starting ff-manager backend", "port", port)
+		logger.Info("starting ff-manager backend", slog.String("port", port))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("server failed", "err", err)
+			logger.Error("server failed", slog.Any("err", err))
 			os.Exit(1)
 		}
 	}()
@@ -82,10 +85,9 @@ func main() {
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
-
 	logger.Info("shutting down gracefully")
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		logger.Error("graceful shutdown failed", "err", err)
+		logger.Error("graceful shutdown failed", slog.Any("err", err))
 	}
 	logger.Info("server stopped")
 }
