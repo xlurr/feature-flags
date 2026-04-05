@@ -104,21 +104,29 @@ jobs:
       - name: Build images
         run: docker compose build --no-cache
 
+      - name: Save images to tar
+        run: |
+          docker save $(docker compose images -q backend) -o ff-backend.tar
+          docker save $(docker compose images -q frontend) -o ff-frontend.tar
+
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin v0.69.3
+
       - name: Trivy - scan backend image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ff-backend
-          format: table
-          exit-code: 1
-          severity: CRITICAL,HIGH
+        run: |
+          trivy image \
+            --input ff-backend.tar \
+            --severity CRITICAL,HIGH \
+            --exit-code 1
 
       - name: Trivy - scan frontend image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ff-frontend
-          format: table
-          exit-code: 1
-          severity: CRITICAL,HIGH
+        run: |
+          trivy image \
+            --input ff-frontend.tar \
+            --severity CRITICAL,HIGH \
+            --exit-code 1
 
       - name: Start stack
         run: docker compose up -d
