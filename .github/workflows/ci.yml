@@ -7,15 +7,26 @@ on:
     branches: [main, master]
 
 jobs:
-  backend:
-    name: Go Build & Vet
+  # --- Сканирование секретов (первым, до всего остального) ---
+  secrets-scan:
+    name: Secret Scan (gitleaks)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  backend:
+    name: Go Build + Vet + Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: '1.22'
           cache-dependency-path: backend/go.sum
 
       - name: Download deps
@@ -30,16 +41,36 @@ jobs:
         working-directory: backend
         run: go vet ./...
 
+      # SAST - статический анализ безопасности Go-кода
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - name: Run gosec
+        working-directory: backend
+        run: gosec -fmt sarif -out gosec-results.sarif ./... || true
+
+      - name: Upload gosec SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: backend/gosec-results.sarif
+        if: always()
+
+      # Проверка уязвимых зависимостей Go (официальный инструмент от Google)
+      - name: govulncheck
+        working-directory: backend
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
   frontend:
-    name: Node Build
+    name: Node Build + Audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: 20
+          cache: npm
 
       - name: Install deps
         run: npm ci
@@ -50,23 +81,44 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Проверка npm-зависимостей на CVE
+      - name: npm audit
+        run: npm audit --audit-level=high
+
   docker:
-    name: Docker Compose Build
+    name: Docker + Container Scan + DAST
     runs-on: ubuntu-latest
     needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create .env для CI
+      - name: Create .env CI
         run: |
-          cat > .env << 'ENVEOF'
-          POSTGRES_PASSWORD=ci_test_password
-          POSTGRES_USER=ff_user
-          POSTGRES_DB=ff_manager
+          cat > .env <<ENVEOF
+          POSTGRES_PASSWORD=citestpassword
+          POSTGRES_USER=ffuser
+          POSTGRES_DB=ffmanager
           ENVEOF
 
       - name: Build images
         run: docker compose build --no-cache
+
+      # Сканирование Docker-образов на CVE
+      - name: Trivy - scan backend image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ff-backend
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+
+      - name: Trivy - scan frontend image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ff-frontend
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
 
       - name: Start stack
         run: docker compose up -d
@@ -84,6 +136,27 @@ jobs:
 
       - name: Eval API check
         run: curl -sf http://localhost/eval/prod-key-001
+
+      # DAST - Nuclei против живого стека
+      - name: Install Nuclei
+        run: |
+          go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+
+      - name: Run Nuclei scan
+        run: |
+          nuclei -u http://localhost \
+            -t http/misconfiguration \
+            -t http/exposures \
+            -t http/vulnerabilities \
+            -severity medium,high,critical \
+            -o nuclei-report.txt || true
+
+      - name: Upload Nuclei report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuclei-report
+          path: nuclei-report.txt
+        if: always()
 
       - name: Teardown
         if: always()
