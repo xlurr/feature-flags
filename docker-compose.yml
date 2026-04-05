@@ -3,14 +3,14 @@ services:
     image: postgres:16-alpine
     container_name: ff-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-ff_manager}
-      POSTGRES_USER: ${POSTGRES_USER:-ff_user}
+      POSTGRES_DB: ${POSTGRES_DB:-ffmanager}
+      POSTGRES_USER: ${POSTGRES_USER:-ffuser}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ff_user} -d ${POSTGRES_DB:-ff_manager}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ffuser} -d ${POSTGRES_DB:-ffmanager}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -20,10 +20,11 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: ff-backend
     container_name: ff-backend
     environment:
-      PORT: "8080"
-      DATABASE_URL: "postgres://${POSTGRES_USER:-ff_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ff_manager}?sslmode=disable"
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-ffuser}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ffmanager}?sslmode=disable
     depends_on:
       postgres:
         condition: service_healthy
@@ -33,10 +34,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+    image: ff-frontend
     container_name: ff-frontend
     environment:
       NODE_ENV: production
-      PORT: "3000"
+      PORT: 3000
     restart: unless-stopped
     volumes:
       - sqlite-data:/app/data
