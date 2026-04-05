@@ -106,8 +106,8 @@ jobs:
 
       - name: Save images to tar
         run: |
-          docker save $(docker compose images -q backend) -o ff-backend.tar
-          docker save $(docker compose images -q frontend) -o ff-frontend.tar
+          docker save ff-backend -o ff-backend.tar
+          docker save ff-frontend -o ff-frontend.tar
 
       - name: Install Trivy
         run: |
