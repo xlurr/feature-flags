@@ -124,8 +124,6 @@ jobs:
 
       - name: Trivy - scan frontend image
         run: |
-                - name: Trivy - scan frontend image
-        run: |
           trivy image \
             --input ff-frontend.tar \
             --severity CRITICAL,HIGH \
