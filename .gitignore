@@ -68,3 +68,6 @@ ehthumbs.db
 *.tmp
 *~
 *.sh.env
+
+
+*.docx

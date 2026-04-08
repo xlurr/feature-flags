@@ -10,6 +10,9 @@ import DashboardPage from "@/pages/dashboard";
 import FlagsPage from "@/pages/flags";
 import AuditPage from "@/pages/audit";
 import SettingsPage from "@/pages/settings";
+import EvalPage from "@/pages/eval";
+import LoginPage from "@/pages/login";
+import { useState } from "react";
 
 function AppRouter() {
   return (
@@ -18,6 +21,7 @@ function AppRouter() {
         <Route path="/" component={DashboardPage} />
         <Route path="/flags" component={FlagsPage} />
         <Route path="/audit" component={AuditPage} />
+        <Route path="/eval" component={EvalPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
@@ -26,6 +30,16 @@ function AppRouter() {
 }
 
 function App() {
+  const [authed, setAuthed] = useState(false);
+
+  if (!authed) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <LoginPage onLogin={() => setAuthed(true)} />
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
