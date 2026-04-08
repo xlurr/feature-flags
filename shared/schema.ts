@@ -110,3 +110,79 @@ export type DashboardStats = {
   envStats: Array<{ name: string; active: number; total: number }>;
   recentAudit: AuditEventFull[];
 };
+
+// ---------------------
+// API models (Go backend contract)
+// ---------------------
+
+export interface ApiEnvironment {
+  id: string;
+  projectId: string;
+  envKey: string;
+  name: string;
+  clientApiKey: string;
+  createdAt: string;
+}
+
+export interface ApiTargetingRule {
+  type: string;
+  value: unknown;
+}
+
+export interface ApiFlagState {
+  id: string;
+  flagId: string;
+  environmentId: string;
+  isEnabled: boolean;
+  targetingRules: ApiTargetingRule[];
+  rolloutWeight: number;
+  updatedAt: string;
+}
+
+export interface ApiFeatureFlag {
+  id: string;
+  projectId: string;
+  authorId: string | null;
+  flagKey: string;
+  name: string;
+  description: string | null;
+  isPermanent: boolean;
+  archivedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiFlagWithStates extends ApiFeatureFlag {
+  authorName?: string;
+  states: Record<string, ApiFlagState>;
+  isStale?: boolean;
+  daysSinceActivity?: number;
+}
+
+export interface ApiEnvStat {
+  envKey: string;
+  name: string;
+  activeCount: number;
+  totalCount: number;
+}
+
+export interface ApiAuditEventFull {
+  id: string;
+  flagId: string | null;
+  actorId: string | null;
+  environmentId: string | null;
+  eventType: string;
+  diffPayload: string;
+  createdAt: string;
+  actorName: string;
+  flagKey: string | null;
+  envKey: string | null;
+}
+
+export interface ApiDashboardStats {
+  totalFlags: number;
+  activeInProduction: number;
+  auditEventsCount: number;
+  envStats: ApiEnvStat[];
+  recentAudit: ApiAuditEventFull[];
+}

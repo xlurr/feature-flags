@@ -1,34 +1,29 @@
-import { useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 /**
- * useProjectStream — подключается к SSE-эндпоинту /api/stream/{projectId}
- * и при получении FLAG_CHANGE инвалидирует React Query кэш флагов и дашборда.
- *
- * EventSource автоматически переподключается при разрыве — retry не нужен.
+ * Подписывается на SSE /api/stream/{projectId}.
+ * Инвалидирует кэш TanStack Query при SNAPSHOT и FLAGCHANGE.
  */
 export function useProjectStream(projectId: string): void {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!projectId) return
+    if (!projectId) return;
 
-    const es = new EventSource(`/api/stream/${projectId}`)
+    const es = new EventSource(`/api/stream/${projectId}`);
 
-    // SNAPSHOT — первичная загрузка: инвалидируем, чтобы React Query
-    // обновил данные из свежего ответа сервера.
-    es.addEventListener('SNAPSHOT', () => {
-      queryClient.invalidateQueries({ queryKey: [`api/flags/${projectId}`] })
-    })
+    es.addEventListener("SNAPSHOT", () => {
+      queryClient.invalidateQueries({ queryKey: [`flags/${projectId}`] });
+    });
 
-    // FLAG_CHANGE — любое изменение флага: пересинхронизируем флаги и дашборд.
-    es.addEventListener('FLAG_CHANGE', () => {
-      queryClient.invalidateQueries({ queryKey: [`api/flags/${projectId}`] })
-      queryClient.invalidateQueries({ queryKey: [`api/dashboard/${projectId}`] })
-    })
+    es.addEventListener("FLAGCHANGE", () => {
+      queryClient.invalidateQueries({ queryKey: [`flags/${projectId}`] });
+      queryClient.invalidateQueries({ queryKey: [`dashboard/${projectId}`] });
+    });
 
-    return () => {
-      es.close()
-    }
-  }, [projectId, queryClient])
+    es.onerror = () => { es.close(); };
+
+    return () => es.close();
+  }, [projectId, queryClient]);
 }

@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { DEFAULT_PROJECT_ID } from "@/lib/constants";
+
+const PROJECT_ID = DEFAULT_PROJECT_ID;
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Environment, User } from "@shared/schema";
@@ -259,11 +262,9 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("environments");
 
   const { data: envs, isLoading: envsLoading } = useQuery<Environment[]>({
-    queryKey: ["/api/environments/1"],
+    queryKey: [`environments/${DEFAULT_PROJECT_ID}`],
   });
-  const { data: users, isLoading: usersLoading } = useQuery<User[]>({
-    queryKey: ["/api/users"],
-  });
+  const users: any[] = []; const usersLoading = false;
 
   const tabs: { key: SettingsTab; label: string; icon: typeof Key }[] = [
     { key: "environments", label: "Environments", icon: Globe },

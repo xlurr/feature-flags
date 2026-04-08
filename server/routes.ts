@@ -6,15 +6,43 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+// resolveProjectId: принимает UUID (Go/Postgres) или числовой id (SQLite BFF)
+function resolveProjectId(rawId: string): number {
+  if (rawId === "00000000-0000-0000-0000-000000000001") return 1;
+  const n = parseInt(rawId, 10);
+  return isNaN(n) ? 1 : n;
+}
+
   // Seed database on first run
   await storage.seed();
 
   /* ── Dashboard ── */
   app.get("/api/dashboard/:projectId", async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = resolveProjectId(req.params.projectId);
       const stats = await storage.getDashboardStats(projectId);
-      res.json(stats);
+    const normalized = {
+      ...stats,
+      envStats: (stats.envStats as any[]).map((env: any) => ({
+        envKey: env.envKey ?? String(env.name).toLowerCase().replace(/\s+/g, "-"),
+        name: env.name,
+        activeCount: env.activeCount ?? env.active ?? 0,
+        totalCount: env.totalCount ?? env.total ?? 0,
+      })),
+      recentAudit: (stats.recentAudit as any[]).map((e: any) => ({
+        id: String(e.id),
+        flagId: e.flagId != null ? String(e.flagId) : null,
+        actorId: e.actorId != null ? String(e.actorId) : null,
+        environmentId: e.environmentId != null ? String(e.environmentId) : null,
+        eventType: e.eventType,
+        diffPayload: typeof e.diffPayload === "string" ? e.diffPayload : JSON.stringify(e.diffPayload ?? {}),
+        createdAt: e.createdAt,
+        actorName: e.actorName ?? "System",
+        flagKey: e.flagKey ?? null,
+        envKey: e.envKey ?? null,
+      })),
+    };
+    res.json(normalized);
     } catch (error) {
       res.status(500).json({ error: "Failed to load dashboard" });
     }
@@ -48,7 +76,7 @@ export async function registerRoutes(
   /* ── Environments ── */
   app.get("/api/environments/:projectId", async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = resolveProjectId(req.params.projectId);
       const envs = await storage.getEnvironmentsByProject(projectId);
       res.json(envs);
     } catch (error) {
@@ -59,9 +87,23 @@ export async function registerRoutes(
   /* ── Feature Flags ── */
   app.get("/api/flags/:projectId", async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = resolveProjectId(req.params.projectId);
       const flags = await storage.getFlags(projectId);
-      res.json(flags);
+    const nFlags = (flags as any[]).map((f: any) => ({
+      ...f,
+      id: String(f.id),
+      projectId: String(f.projectId),
+      authorId: f.authorId != null ? String(f.authorId) : null,
+      archivedAt: f.archivedAt ?? null,
+      isStale: false,
+      daysSinceActivity: 0,
+      states: Object.fromEntries(
+        Object.entries(f.states ?? {}).map(([k, v]: [string, any]) => [
+          k, { ...v, id: String(v.id), flagId: String(v.flagId), environmentId: String(v.environmentId) }
+        ])
+      ),
+    }));
+    res.json(nFlags);
     } catch (error) {
       res.status(500).json({ error: "Failed to load flags" });
     }

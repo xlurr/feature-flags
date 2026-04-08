@@ -12,7 +12,7 @@ const EVENT_TYPE_LABELS: Record<string, { label: string; color: string }> = {
 
 export default function AuditPage() {
   const { data: events, isLoading } = useQuery<AuditEventFull[]>({
-    queryKey: ["/api/audit"],
+    queryKey: ["audit"],
   });
 
   return (

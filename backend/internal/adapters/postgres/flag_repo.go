@@ -22,6 +22,7 @@ func (r *FlagRepo) GetFlags(ctx context.Context, projectID string) ([]domain.Fla
 			COALESCE(f.author_id::text,'') AS author_id,
 			f.flag_key, f.name, f.description, f.is_permanent,
 			f.created_at, f.updated_at,
+			f.archived_at,
 			COALESCE(u.full_name,'') AS author_name,
 			e.id::text AS env_id, e.env_key,
 			COALESCE(fs.id::text,'') AS state_id,
@@ -35,7 +36,6 @@ func (r *FlagRepo) GetFlags(ctx context.Context, projectID string) ([]domain.Fla
 		LEFT  JOIN flag_states  fs ON fs.flag_id = f.id AND fs.environment_id = e.id
 		WHERE f.project_id = $1::uuid
 		  AND e.project_id = $1::uuid
-		  AND f.archived_at IS NULL
 		ORDER BY f.created_at DESC, e.env_key`
 
 	rows, err := r.db.Query(ctx, query, projectID)
@@ -52,6 +52,7 @@ func (r *FlagRepo) GetFlags(ctx context.Context, projectID string) ([]domain.Fla
 			fID, fProjectID, fAuthorID, fFlagKey, fName, fDesc string
 			fIsPermanent                                        bool
 			fCreatedAt, fUpdatedAt                             time.Time
+		fArchivedAt *time.Time
 			fAuthorName, envID, envKey, stateID                string
 			isEnabled                                          bool
 			targetingRaw                                       []byte
@@ -59,7 +60,8 @@ func (r *FlagRepo) GetFlags(ctx context.Context, projectID string) ([]domain.Fla
 			stateUpdatedAt                                     time.Time
 		)
 		if err := rows.Scan(&fID, &fProjectID, &fAuthorID, &fFlagKey, &fName, &fDesc,
-			&fIsPermanent, &fCreatedAt, &fUpdatedAt, &fAuthorName,
+			&fIsPermanent, &fCreatedAt, &fUpdatedAt,
+				&fArchivedAt, &fAuthorName,
 			&envID, &envKey, &stateID, &isEnabled, &targetingRaw,
 			&rolloutWeight, &stateUpdatedAt); err != nil {
 			return nil, fmt.Errorf("FlagRepo.GetFlags scan: %w", err)
@@ -70,9 +72,12 @@ func (r *FlagRepo) GetFlags(ctx context.Context, projectID string) ([]domain.Fla
 					ID: fID, ProjectID: fProjectID, AuthorID: fAuthorID,
 					FlagKey: fFlagKey, Name: fName, Description: fDesc,
 					IsPermanent: fIsPermanent, CreatedAt: fCreatedAt, UpdatedAt: fUpdatedAt,
+					ArchivedAt: fArchivedAt,
 				},
 				AuthorName: fAuthorName,
 				States:     make(map[string]domain.FlagState),
+			IsStale:           false,
+			DaysSinceActivity: 0,
 			}
 			order = append(order, fID)
 		}
@@ -106,6 +111,7 @@ func (r *FlagRepo) GetFlag(ctx context.Context, id string) (*domain.FlagWithStat
 			COALESCE(f.author_id::text,'') AS author_id,
 			f.flag_key, f.name, f.description, f.is_permanent,
 			f.created_at, f.updated_at,
+			f.archived_at,
 			COALESCE(u.full_name,'') AS author_name,
 			e.id::text AS env_id, e.env_key,
 			COALESCE(fs.id::text,'') AS state_id,
@@ -132,6 +138,7 @@ func (r *FlagRepo) GetFlag(ctx context.Context, id string) (*domain.FlagWithStat
 			fID, fProjectID, fAuthorID, fFlagKey, fName, fDesc string
 			fIsPermanent                                        bool
 			fCreatedAt, fUpdatedAt                             time.Time
+		fArchivedAt *time.Time
 			fAuthorName, envID, envKey, stateID                string
 			isEnabled                                          bool
 			targetingRaw                                       []byte
@@ -139,7 +146,8 @@ func (r *FlagRepo) GetFlag(ctx context.Context, id string) (*domain.FlagWithStat
 			stateUpdatedAt                                     time.Time
 		)
 		if err := rows.Scan(&fID, &fProjectID, &fAuthorID, &fFlagKey, &fName, &fDesc,
-			&fIsPermanent, &fCreatedAt, &fUpdatedAt, &fAuthorName,
+			&fIsPermanent, &fCreatedAt, &fUpdatedAt,
+				&fArchivedAt, &fAuthorName,
 			&envID, &envKey, &stateID, &isEnabled, &targetingRaw,
 			&rolloutWeight, &stateUpdatedAt); err != nil {
 			return nil, fmt.Errorf("FlagRepo.GetFlag scan: %w", err)
@@ -150,9 +158,12 @@ func (r *FlagRepo) GetFlag(ctx context.Context, id string) (*domain.FlagWithStat
 					ID: fID, ProjectID: fProjectID, AuthorID: fAuthorID,
 					FlagKey: fFlagKey, Name: fName, Description: fDesc,
 					IsPermanent: fIsPermanent, CreatedAt: fCreatedAt, UpdatedAt: fUpdatedAt,
+					ArchivedAt: fArchivedAt,
 				},
 				AuthorName: fAuthorName,
 				States:     make(map[string]domain.FlagState),
+			IsStale:           false,
+			DaysSinceActivity: 0,
 			}
 		}
 		if stateID != "" {

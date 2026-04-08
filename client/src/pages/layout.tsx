@@ -6,6 +6,7 @@ import {
 import { useState, useEffect } from "react";
 import { useProjectStream } from "@/hooks/useProjectStream";
 
+import { DEFAULT_PROJECT_ID } from "@/lib/constants";
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: ChartBar },
   { path: "/flags", label: "Feature Flags", icon: Flag },
@@ -14,7 +15,7 @@ const NAV_ITEMS = [
   { path: "/settings", label: "Settings", icon: Gear },
 ] as const;
 
-const PROJECT_ID = "1";
+const PROJECT_ID = DEFAULT_PROJECT_ID;
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();

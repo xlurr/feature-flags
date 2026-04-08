@@ -1,5 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { DEFAULT_PROJECT_ID } from "@/lib/constants";
+
+const PROJECT_ID = DEFAULT_PROJECT_ID;
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import {
   MagnifyingGlass, Plus, ToggleLeft, ToggleRight, Trash, X,
@@ -91,16 +94,16 @@ export default function FlagsPage() {
   const [newFlag, setNewFlag] = useState({ name: "", key: "", description: "" });
 
   const { data: flags, isLoading } = useQuery<FlagWithStates[]>({
-    queryKey: ["/api/flags/1"],
+    queryKey: [`flags/${PROJECT_ID}`],
   });
   const { data: envs } = useQuery<Environment[]>({
-    queryKey: ["/api/environments/1"],
+    queryKey: [`environments/${PROJECT_ID}`],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: { name: string; key: string; description: string }) => {
-      const res = await apiRequest("POST", "/api/flags", {
-        projectId: 1,
+      const res = await apiRequest("POST", "/flags", {
+        projectId: PROJECT_ID,
         flagKey: data.key,
         name: data.name,
         description: data.description,
@@ -108,8 +111,8 @@ export default function FlagsPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/flags/1"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/1"] });
+      queryClient.invalidateQueries({ queryKey: [`flags/${PROJECT_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`dashboard/${PROJECT_ID}`] });
       setShowCreate(false);
       setNewFlag({ name: "", key: "", description: "" });
       toast({ title: "Flag created" });
@@ -118,23 +121,23 @@ export default function FlagsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/flags/${id}`);
+      await apiRequest("DELETE", `/flags/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/flags/1"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/1"] });
+      queryClient.invalidateQueries({ queryKey: [`flags/${PROJECT_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`dashboard/${PROJECT_ID}`] });
       toast({ title: "Flag deleted" });
     },
   });
 
   const toggleMutation = useMutation({
     mutationFn: async ({ flagId, envId }: { flagId: number; envId: number }) => {
-      const res = await apiRequest("PUT", `/api/flags/${flagId}/toggle/${envId}`);
+      const res = await apiRequest("PUT", `/flags/${flagId}/toggle/${envId}`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/flags/1"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/1"] });
+      queryClient.invalidateQueries({ queryKey: [`flags/${PROJECT_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`dashboard/${PROJECT_ID}`] });
     },
   });
 

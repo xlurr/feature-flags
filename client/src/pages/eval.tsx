@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import type { Environment } from "@shared/schema";
 import { Play, CopySimple, ArrowsClockwise } from "@phosphor-icons/react";
 import { useToast } from "@/hooks/use-toast";
+import { DEFAULT_PROJECT_ID } from "@/lib/constants";
+
+const PROJECT_ID = DEFAULT_PROJECT_ID;
 
 interface EvalResult {
   [flagKey: string]: boolean;
@@ -32,7 +35,7 @@ function HitRateBar({ rate }: { rate: number }) {
 
 export default function EvalPage() {
   const { toast } = useToast();
-  const { data: envs } = useQuery<Environment[]>({ queryKey: ["/api/environments/1"] });
+  const { data: envs } = useQuery<Environment[]>({ queryKey: [`environments/${DEFAULT_PROJECT_ID}`] });
 
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [customKey, setCustomKey] = useState("");

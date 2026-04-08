@@ -61,6 +61,8 @@ type FlagWithStates struct {
 	FeatureFlag
 	AuthorName string               `json:"authorName"`
 	States     map[string]FlagState `json:"states"`
+	IsStale           bool                 `json:"isStale"`
+	DaysSinceActivity int                  `json:"daysSinceActivity"`
 }
 
 type AuditEvent struct {
@@ -81,9 +83,10 @@ type AuditEventFull struct {
 }
 
 type EnvStat struct {
-	Name   string `json:"name"`
-	Active int    `json:"active"`
-	Total  int    `json:"total"`
+	EnvKey      string `json:"envKey"`
+	Name        string `json:"name"`
+	ActiveCount int    `json:"activeCount"`
+	TotalCount  int    `json:"totalCount"`
 }
 
 type DashboardStats struct {

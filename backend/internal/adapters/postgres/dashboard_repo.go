@@ -44,13 +44,17 @@ func (r *DashboardRepo) GetStats(ctx context.Context, projectID string) (*domain
 	}
 
 	const envQ = `
-		SELECT e.name,
-		  COUNT(CASE WHEN fs.is_enabled THEN 1 END)::int AS active,
-		  (SELECT COUNT(*) FROM feature_flags WHERE project_id=$1::uuid AND archived_at IS NULL)::int AS total
-		FROM environments e
-		LEFT JOIN flag_states fs ON fs.environment_id=e.id
-		WHERE e.project_id=$1::uuid
-		GROUP BY e.id, e.name ORDER BY e.created_at`
+SELECT
+  e.env_key,
+  e.name,
+  COUNT(CASE WHEN fs.is_enabled THEN 1 END)::int AS active_count,
+  (SELECT COUNT(*) FROM feature_flags
+     WHERE project_id = $1::uuid AND archived_at IS NULL)::int AS total_count
+FROM environments e
+LEFT JOIN flag_states fs ON fs.environment_id = e.id
+WHERE e.project_id = $1::uuid
+GROUP BY e.id, e.env_key, e.name
+ORDER BY e.created_at`
 
 	rows, err := r.db.Query(ctx, envQ, projectID)
 	if err != nil {
@@ -60,7 +64,7 @@ func (r *DashboardRepo) GetStats(ctx context.Context, projectID string) (*domain
 	var envStats []domain.EnvStat
 	for rows.Next() {
 		var es domain.EnvStat
-		if err := rows.Scan(&es.Name, &es.Active, &es.Total); err != nil {
+		if err := rows.Scan(&es.EnvKey, &es.Name, &es.ActiveCount, &es.TotalCount); err != nil {
 			return nil, fmt.Errorf("DashboardRepo.GetStats envQ scan: %w", err)
 		}
 		envStats = append(envStats, es)

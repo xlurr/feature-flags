@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { DEFAULT_PROJECT_ID } from "@/lib/constants";
 import { Flag, Lightning, ClockCounterClockwise, Warning, CopySimple } from "@phosphor-icons/react";
-import type { DashboardStats } from "@shared/schema";
+import type { ApiDashboardStats } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
-const PROJECT_ID = 1;
+const PROJECT_ID = DEFAULT_PROJECT_ID;
 const EVAL_URL = `${window.location.origin}/eval/`;
 
 function StatCard({
@@ -85,8 +86,8 @@ function EvalHintCard() {
 }
 
 export default function DashboardPage() {
-  const { data, isLoading } = useQuery<DashboardStats>({
-    queryKey: [`/api/dashboard/${PROJECT_ID}`],
+  const { data, isLoading } = useQuery<ApiDashboardStats>({
+    queryKey: [`dashboard/${PROJECT_ID}`],
   });
 
   const staleCount = (data?.recentAudit ?? []).filter((a: any) => {
