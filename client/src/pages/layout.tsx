@@ -17,7 +17,7 @@ import { DEFAULT_PROJECT_ID } from "@/lib/constants";
 const PROJECT_ID = DEFAULT_PROJECT_ID;
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [dark, setDark] = useState(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches
   );
@@ -37,19 +37,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => es.close();
   }, []);
 
-  const NAV_ITEMS = [
-    { path: "/",         label: t.dashboard, icon: ChartBar },
-    { path: "/flags",    label: t.flags,     icon: Flag },
-    { path: "/audit",    label: t.audit,     icon: ClockCounterClockwise },
-    { path: "/eval",     label: t.eval,      icon: Play },
-    { path: "/settings", label: t.settings,  icon: Gear },
+  const NAVITEMS = [
+  { path: "/dashboard", label: t.dashboard, icon: ChartBar },
+  { path: "/flags",     label: t.flags,     icon: Flag },
+  { path: "/audit",     label: t.audit,     icon: ClockCounterClockwise },
+  { path: "/eval",      label: t.eval,      icon: Play },
+  { path: "/settings",  label: t.settings,  icon: Gear },
   ];
 
   return (
     <div className="flex flex-col h-screen bg-background">
       <nav className="ff-topnav">
         <Link href="/">
-          <div className="ff-topnav-logo">
+          <div className="ff-topnav-logo" onClick={() => navigate("/")} role="button" style={{ cursor: "pointer" }}>
             <div className="ff-topnav-logo-mark">
               <ShieldCheck size={14} weight="bold" className="text-primary-foreground" />
             </div>
@@ -58,7 +58,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </Link>
 
         <div className="ff-topnav-links">
-          {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
+          {NAVITEMS.map(({ path, label, icon: Icon }) => {
             const isActive = path === "/" ? location === "/" : location.startsWith(path);
             return (
               <Link key={path} href={path}>

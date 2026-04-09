@@ -12,6 +12,7 @@ import AuditPage from "@/pages/audit";
 import SettingsPage from "@/pages/settings";
 import EvalPage from "@/pages/eval";
 import LoginPage from "@/pages/login";
+import HomePage from "@/pages/home";
 import { useState } from "react";
 import { LangProvider } from "@/lib/i18n";
 
@@ -19,7 +20,8 @@ function AppRouter() {
   return (
     <AppLayout>
       <Switch>
-        <Route path="/" component={DashboardPage} />
+        <Route path="/" component={HomePage} />
+        <Route path="/dashboard" component={DashboardPage} />
         <Route path="/flags" component={FlagsPage} />
         <Route path="/audit" component={AuditPage} />
         <Route path="/eval" component={EvalPage} />
@@ -32,6 +34,7 @@ function AppRouter() {
 
 function App() {
   const [authed, setAuthed] = useState(false);
+
   if (!authed) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -41,6 +44,7 @@ function App() {
       </QueryClientProvider>
     );
   }
+
   return (
     <QueryClientProvider client={queryClient}>
       <LangProvider>
