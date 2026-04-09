@@ -6,80 +6,110 @@ import { useTheme } from "next-themes";
 
 const MOCK_FLAGS = [
   { key: "stripe-checkout-v2", name: "Stripe Checkout v2", enabled: true,  rollout: 10,  evals: 12480, uplift: "+18.3%", upliftDir: "up"      as const, rule: "percentage:10"  },
-  { key: "zendesk-feature",     name: "Zendesk AI Bot",     enabled: true,  rollout: 100, evals: 8941,  uplift: "+7.1%",  upliftDir: "up"      as const, rule: "userGroup:beta" },
-  { key: "datadogs-rum",        name: "Datadog RUM",        enabled: false, rollout: 5,   evals: 3210,  uplift: "—",      upliftDir: "neutral" as const, rule: "percentage:5"   },
+  { key: "zendesk-feature",    name: "Zendesk AI Bot",     enabled: true,  rollout: 100, evals: 8941,  uplift: "+7.1%",  upliftDir: "up"      as const, rule: "userGroup:beta" },
+  { key: "datadogs-rum",       name: "Datadog RUM",        enabled: false, rollout: 5,   evals: 3210,  uplift: "—",      upliftDir: "neutral" as const, rule: "percentage:5"   },
 ] as const;
 
 const EVAL_DATA = [420, 480, 510, 530, 490, 520, 560, 540, 580, 620, 780, 820, 850, 890];
 const CONV_DATA = [42,  48,  50,  52,  49,  51,  55,  53,  57,  61,  88,  96, 100, 112];
 
-const MINI_FLAGS = [
-  { key: "stripe-checkout", on: true  },
-  { key: "zen-desk-feature",     on: true  },
-  { key: "datadogs-rum",        on: false },
-];
+// ─── Float config ─────────────────────────────────────────────────────────────
 
-// ─── Pixel Newt ───────────────────────────────────────────────────────────────
-// Горизонтальная ящерица, смотрит вправо, 14×11 пикселей
-// b = primary, m = primary/0.35 (тень), e = amber (глаз)
+const FLOAT_CONFIGS = [
+  { name: "ff-float-card-0", dur: "4.5s", delay: "0s"    },
+  { name: "ff-float-card-1", dur: "4.9s", delay: "0.7s"  },
+  { name: "ff-float-card-2", dur: "5.3s", delay: "1.3s"  },
+  { name: "ff-float-card-3", dur: "5.7s", delay: "0.3s"  },
+] as const;
 
-const PIXEL_MAP: Array<[number, number, string]> = [
+// ─── Pixel Lizard (gecko, 18×22, 4px) ────────────────────────────────────────
+
+const PX   = 4;
+const COLS = 18;
+const ROWS = 22;
+
+type Pixel = [col: number, row: number, color: string];
+
+const PIXEL_MAP: Pixel[] = [
   // хвост
-  [4, 0, "m"], [3, 1, "b"], [4, 1, "b"],
-  [2, 2, "b"], [3, 2, "b"],
-  [2, 3, "b"], [3, 3, "b"],
-  // тело
-  [1, 4, "b"], [2, 4, "b"], [3, 4, "b"],
-  [1, 5, "b"], [2, 5, "b"], [3, 5, "b"],
-  [1, 6, "b"], [2, 6, "b"], [3, 6, "b"],
-  [1, 7, "b"], [2, 7, "b"], [3, 7, "b"],
-  // спинной гребень
-  [0, 4, "m"], [0, 5, "b"], [0, 6, "m"],
-  // передняя лапа
-  [4, 5, "b"], [5, 5, "b"], [6, 5, "m"],
-  [4, 6, "m"], [5, 6, "b"],
-  // задняя лапа
-  [4, 7, "b"], [5, 7, "b"], [6, 7, "m"],
-  [4, 8, "m"], [5, 8, "b"],
+  [10,21,"#4c1d95"],[11,21,"#5b21b6"],
+  [9,20,"#5b21b6"],[10,20,"#6d28d9"],
+  [8,19,"#6d28d9"],[9,19,"#7c3aed"],
+  [7,18,"#6d28d9"],[8,18,"#7c3aed"],[9,18,"#6d28d9"],
+  [7,17,"#7c3aed"],[8,17,"#a78bfa"],[9,17,"#7c3aed"],
+  // тело-зад
+  [6,16,"#6d28d9"],[7,16,"#7c3aed"],[8,16,"#a78bfa"],[9,16,"#7c3aed"],[10,16,"#6d28d9"],
+  // задние лапки
+  [3,15,"#7c3aed"],[4,15,"#6d28d9"],
+  [11,15,"#6d28d9"],[12,15,"#7c3aed"],
+  [2,14,"#6d28d9"],[3,14,"#7c3aed"],
+  [12,14,"#7c3aed"],[13,14,"#6d28d9"],
+  [1,13,"#5b21b6"],[2,13,"#6d28d9"],
+  [13,13,"#6d28d9"],[14,13,"#5b21b6"],
+  // средняя часть тела
+  [4,15,"#6d28d9"],[5,15,"#7c3aed"],[6,15,"#a78bfa"],[7,15,"#c4b5fd"],[8,15,"#c4b5fd"],[9,15,"#a78bfa"],[10,15,"#7c3aed"],[11,15,"#6d28d9"],
+  [4,14,"#6d28d9"],[5,14,"#7c3aed"],[6,14,"#a78bfa"],[7,14,"#c4b5fd"],[8,14,"#c4b5fd"],[9,14,"#a78bfa"],[10,14,"#7c3aed"],[11,14,"#6d28d9"],
+  [5,13,"#7c3aed"],[6,13,"#a78bfa"],[7,13,"#c4b5fd"],[8,13,"#c4b5fd"],[9,13,"#a78bfa"],[10,13,"#7c3aed"],
+  // передние лапки
+  [3,12,"#7c3aed"],[4,12,"#6d28d9"],
+  [11,12,"#6d28d9"],[12,12,"#7c3aed"],
+  [2,11,"#6d28d9"],[3,11,"#7c3aed"],
+  [12,11,"#7c3aed"],[13,11,"#6d28d9"],
+  [1,10,"#5b21b6"],[2,10,"#6d28d9"],
+  [13,10,"#6d28d9"],[14,10,"#5b21b6"],
+  // тело-перед
+  [4,12,"#6d28d9"],[5,12,"#7c3aed"],[6,12,"#a78bfa"],[7,12,"#c4b5fd"],[8,12,"#c4b5fd"],[9,12,"#a78bfa"],[10,12,"#7c3aed"],[11,12,"#6d28d9"],
+  [5,11,"#7c3aed"],[6,11,"#a78bfa"],[7,11,"#c4b5fd"],[8,11,"#c4b5fd"],[9,11,"#a78bfa"],[10,11,"#7c3aed"],
+  [5,10,"#7c3aed"],[6,10,"#a78bfa"],[7,10,"#a78bfa"],[8,10,"#a78bfa"],[9,10,"#a78bfa"],[10,10,"#7c3aed"],
   // шея
-  [1, 8, "b"], [2, 8, "b"],
-  [1, 9, "b"], [0, 9, "m"],
+  [6,9,"#7c3aed"],[7,9,"#a78bfa"],[8,9,"#a78bfa"],[9,9,"#7c3aed"],
+  [6,8,"#6d28d9"],[7,8,"#7c3aed"],[8,8,"#7c3aed"],[9,8,"#6d28d9"],
   // голова
-  [0, 10, "b"], [1, 10, "b"], [2, 10, "b"],
-  [0, 11, "b"], [1, 11, "e"], [2, 11, "b"],
-  [0, 12, "b"], [1, 12, "b"], [2, 12, "b"], [3, 12, "m"],
+  [5,7,"#6d28d9"],[6,7,"#7c3aed"],[7,7,"#a78bfa"],[8,7,"#a78bfa"],[9,7,"#7c3aed"],[10,7,"#6d28d9"],
+  // глаза
+  [5,6,"#7c3aed"],[6,6,"#c4b5fd"],[7,6,"#1e1b4b"],[8,6,"#c4b5fd"],[9,6,"#1e1b4b"],[10,6,"#7c3aed"],
+  [5,5,"#7c3aed"],[6,5,"#a78bfa"],[7,5,"#a78bfa"],[8,5,"#a78bfa"],[9,5,"#a78bfa"],[10,5,"#7c3aed"],
   // морда
-  [1, 13, "b"], [2, 13, "b"],
-  [1, 14, "m"], [2, 14, "b"], [3, 14, "m"],
-  // лапа у шеи
-  [3, 9, "m"], [4, 9, "b"], [5, 9, "m"],
-  [3, 10, "b"], [4, 10, "b"],
+  [6,4,"#6d28d9"],[7,4,"#7c3aed"],[8,4,"#7c3aed"],[9,4,"#6d28d9"],
+  [6,3,"#6d28d9"],[7,3,"#6d28d9"],[8,3,"#6d28d9"],[9,3,"#6d28d9"],
+  // язык
+  [7,2,"#e879f9"],[8,2,"#e879f9"],
+  [7,1,"#d946ef"],[9,1,"#d946ef"],
 ];
 
-const COLOUR_KEY: Record<string, string> = {
-  b: "hsl(var(--foreground) / 0.85)",
-  m: "hsl(var(--foreground) / 0.28)",
-  e: "hsl(var(--foreground) / 0.95)",
-};
-
-function PixelNewt({ size = 6 }: { size?: number }) {
-  const cols = 15, rows = 7;
+function PixelLizard() {
   return (
-    <svg
-      width={cols * size}
-      height={rows * size}
-      viewBox={`0 0 ${cols * size} ${rows * size}`}
-      style={{ imageRendering: "pixelated", display: "block" }}
+    <div
+      aria-hidden="true"
+      style={{
+        position: "relative",
+        width: COLS * PX,
+        height: ROWS * PX,
+        flexShrink: 0,
+        imageRendering: "pixelated",
+      }}
     >
-      {PIXEL_MAP.map(([r, c, k], i) => (
-        <rect key={i} x={c * size} y={r * size} width={size} height={size}
-          fill={COLOUR_KEY[k] ?? COLOUR_KEY.b} />
+      {PIXEL_MAP.map(([col, row, color], i) => (
+        <div key={i} style={{
+          position: "absolute",
+          left: col * PX,
+          top:  row * PX,
+          width: PX,
+          height: PX,
+          background: color,
+        }} />
       ))}
-    </svg>
+    </div>
   );
 }
 
-// ─── FlagMiniList ─────────────────────────────────────────────────────────────
+// ─── FlagMiniList (с автотоглом) ──────────────────────────────────────────────
+
+const MINI_FLAGS = [
+  { key: "stripe-checkout", on: true  },
+  { key: "zen-desk-feature", on: true  },
+  { key: "datadogs-rum",     on: false },
+];
 
 function FlagMiniList() {
   const [states, setStates] = useState(MINI_FLAGS.map((f) => f.on));
@@ -103,106 +133,101 @@ function FlagMiniList() {
   );
 }
 
-// ─── 4-card LogoStage ─────────────────────────────────────────────────────────
+// ─── FloatingCard ─────────────────────────────────────────────────────────────
 
-const STAGE_CARDS = [
-  {
-    title: "FF Manager",
-    sub: "feature flags",
-    animDur: "4.5s",
-    animName: "ff-float-card-0",
-    content: <FlagMiniList />,
-  },
-  {
-    title: "Environments",
-    sub: "multi-env",
-    animDur: "4.9s",
-    animName: "ff-float-card-1",
-    content: (
-      <div style={{ display: "flex", flexDirection: "column", gap: ".375rem", width: "100%", marginTop: ".25rem" }}>
-        {[
-          { key: "production",  color: "var(--green-700)", bg: "hsl(142 76% 36% / 0.15)" },
-          { key: "staging",     color: "var(--amber-700)", bg: "hsl(45 93% 47% / 0.12)"  },
-          { key: "development", color: "var(--blue-700)",  bg: "hsl(217 91% 60% / 0.12)" },
-        ].map(e => (
-          <div key={e.key} style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: ".3rem .5rem", borderRadius: "var(--radius-sm)",
-            border: "1px solid hsl(var(--border))", background: e.bg,
-          }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".5rem", color: e.color, fontWeight: 700 }}>{e.key}</span>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: e.color, display: "inline-block" }} />
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    title: "Eval API",
-    sub: "< 1 ms · cached",
-    animDur: "5.3s",
-    animName: "ff-float-card-2",
-    content: (
-      <div style={{ display: "flex", flexDirection: "column", gap: ".5rem", width: "100%", marginTop: ".25rem" }}>
-        {[
-          { label: "cache hit",   val: "96.3%", color: "var(--green-700)" },
-          { label: "latency",     val: "0.8 ms", color: "var(--blue-700)" },
-          { label: "evals / day", val: "24.6k",  color: "hsl(var(--primary))" },
-        ].map(s => (
-          <div key={s.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: ".5625rem", color: "hsl(var(--muted-foreground))" }}>{s.label}</span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".5625rem", fontWeight: 700, color: s.color }}>{s.val}</span>
-          </div>
-        ))}
-        <div style={{ height: 3, background: "hsl(var(--muted))", borderRadius: 2, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: "96.3%", background: "hsl(var(--primary))", borderRadius: 2 }} />
-        </div>
-      </div>
-    ),
-  },
-  {
-    title: "Rollout",
-    sub: "CRC32 · targeting",
-    animDur: "5.7s",
-    animName: "ff-float-card-3",
-    content: (
-      <div style={{ display: "flex", flexDirection: "column", gap: ".5rem", width: "100%", marginTop: ".25rem" }}>
-        {[
-          { label: "stripe-checkout-v2", pct: 10  },
-          { label: "zendesk-ai-bot",     pct: 100 },
-          { label: "datadog-rum",        pct: 5   },
-        ].map(f => (
-          <div key={f.label} style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: ".45rem", color: "hsl(var(--muted-foreground))", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 120 }}>{f.label}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: ".45rem", color: "hsl(var(--primary))", fontWeight: 700 }}>{f.pct}%</span>
-            </div>
-            <div style={{ height: 2, background: "hsl(var(--muted))", borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${f.pct}%`, background: "hsl(var(--primary))", borderRadius: 2 }} />
-            </div>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-];
+function FloatingCard({ index, children }: { index: number; children: React.ReactNode }) {
+  const cfg = FLOAT_CONFIGS[index] ?? FLOAT_CONFIGS[0];
+  return (
+    <div
+      className="ff-logo-layer--1"
+      style={{
+        animation: `${cfg.name} ${cfg.dur} ease-in-out ${cfg.delay} infinite`,
+        willChange: "transform",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─── LogoStage (4 карточки) ───────────────────────────────────────────────────
 
 function LogoStage() {
   return (
     <div className="ff-logo-stage">
-      <div className="ff-ghost-wrap">
-        <div className="ff-ghost-card ff-ghost-card--front">
-          <PixelNewt size={6} />
+      <div className="ff-logo-layers-grid">
+
+        {/* 0 — ящерица */}
+        <FloatingCard index={0}>
+          <PixelLizard />
           <span className="ff-logo-label">FF Manager</span>
-          <span className="ff-logo-sub">feature flags</span>
+          <span className="ff-logo-sub">FEATURE FLAGS</span>
           <FlagMiniList />
-        </div>
-        <div className="ff-ghost-card ff-ghost-card--back">
-          <PixelNewt size={6} />
-          <span className="ff-logo-label">FF Manager</span>
-          <span className="ff-logo-sub">feature flags</span>
-          <FlagMiniList />
-        </div>
+        </FloatingCard>
+
+        {/* 1 — environments */}
+        <FloatingCard index={1}>
+          <span className="ff-logo-sub" style={{ marginBottom: ".25rem" }}>ENVIRONMENTS</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: ".375rem", width: "100%" }}>
+            {[
+              { key: "production",  color: "var(--green-700)", bg: "hsl(142 76% 36% / 0.15)" },
+              { key: "staging",     color: "var(--amber-700)", bg: "hsl(45 93% 47% / 0.12)"  },
+              { key: "development", color: "var(--blue-700)",  bg: "hsl(217 91% 60% / 0.12)" },
+            ].map(e => (
+              <div key={e.key} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: ".3rem .5rem", borderRadius: "var(--radius-sm)",
+                border: "1px solid hsl(var(--border))", background: e.bg,
+              }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".5rem", color: e.color, fontWeight: 700 }}>{e.key}</span>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: e.color, display: "inline-block" }} />
+              </div>
+            ))}
+          </div>
+        </FloatingCard>
+
+        {/* 2 — eval stats */}
+        <FloatingCard index={2}>
+          <span className="ff-logo-sub" style={{ marginBottom: ".25rem" }}>EVAL API · &lt;1ms</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: ".5rem", width: "100%" }}>
+            {[
+              { label: "cache hit",   val: "96.3%", color: "var(--green-700)" },
+              { label: "latency",     val: "0.8 ms", color: "var(--blue-700)" },
+              { label: "evals / day", val: "24.6k",  color: "hsl(var(--primary))" },
+            ].map(s => (
+              <div key={s.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: ".5625rem", color: "hsl(var(--muted-foreground))" }}>{s.label}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".5625rem", fontWeight: 700, color: s.color }}>{s.val}</span>
+              </div>
+            ))}
+            <div style={{ height: 3, background: "hsl(var(--muted))", borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: "96.3%", background: "hsl(var(--primary))", borderRadius: 2 }} />
+            </div>
+          </div>
+        </FloatingCard>
+
+        {/* 3 — rollout */}
+        <FloatingCard index={3}>
+          <span className="ff-logo-sub" style={{ marginBottom: ".25rem" }}>ROLLOUT · CRC32</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: ".5rem", width: "100%" }}>
+            {[
+              { label: "stripe-checkout-v2", pct: 10  },
+              { label: "zendesk-ai-bot",     pct: 100 },
+              { label: "datadog-rum",        pct: 5   },
+            ].map(f => (
+              <div key={f.label} style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: ".45rem", color: "hsl(var(--muted-foreground))", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 120 }}>{f.label}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: ".45rem", color: "hsl(var(--primary))", fontWeight: 700 }}>{f.pct}%</span>
+                </div>
+                <div style={{ height: 2, background: "hsl(var(--muted))", borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${f.pct}%`, background: "hsl(var(--primary))", borderRadius: 2 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </FloatingCard>
+
       </div>
     </div>
   );
@@ -237,7 +262,7 @@ function KpiCard({ label, value, suffix = "", delta, deltaDir, icon }: {
 }) {
   const displayed = useCounter(value, suffix === "%" ? 1 : 0, 300);
   const fmt =
-    suffix === "%" ? `+${displayed}%` :
+    suffix === "%"  ? `+${displayed}%` :
     suffix === " ms" ? `${displayed} ms` :
     displayed.toLocaleString();
   return (
@@ -258,7 +283,7 @@ function EvalChart({ dark }: { dark: boolean }) {
     const canvas = ref.current;
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = canvas.offsetWidth * dpr;
+    canvas.width  = canvas.offsetWidth * dpr;
     canvas.height = 160 * dpr;
     const ctx = canvas.getContext("2d")!;
     ctx.scale(dpr, dpr);
@@ -269,8 +294,8 @@ function EvalChart({ dark }: { dark: boolean }) {
     const convMax = Math.max(...CONV_DATA) * 1.1;
     const gridC = dark ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.06)";
     const textC = dark ? "rgba(255,255,255,.35)" : "rgba(0,0,0,.35)";
-    const prim  = dark ? "hsl(263,91%,72%)" : "hsl(262,83%,58%)";
-    const green = dark ? "hsl(142,72%,55%)" : "hsl(142,72%,36%)";
+    const prim  = dark ? "hsl(263,91%,72%)"       : "hsl(262,83%,58%)";
+    const green = dark ? "hsl(142,72%,55%)"        : "hsl(142,72%,36%)";
     ctx.clearRect(0, 0, w, h);
     for (let i = 0; i < 4; i++) {
       const y = pad.t + (ch / 4) * i;
@@ -366,12 +391,11 @@ export default function HomePage() {
             FF Manager
           </div>
           <h1 className="ff-hero-title">
-            Feature flags
-            <br /><span>management system</span>
+            Feature flags<br />
+            <span>management system</span>
           </h1>
           <p className="ff-hero-desc">
-            Eval API с in-memory кешем, real-time SSE,
-            multi-env и rollout-правила.
+            Eval API с in-memory кешем, real-time SSE, multi-env и rollout-правила.
           </p>
           <ul className="ff-hero-features">
             {[
@@ -541,6 +565,7 @@ export default function HomePage() {
         <span>FF Manager — self-hosted feature flags · Go 1.22 · React 18 · PostgreSQL 16</span>
         <span style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: ".6875rem" }}>v1.0.0</span>
       </footer>
+
     </div>
   );
 }
