@@ -4,6 +4,42 @@ import { useTheme } from "next-themes";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
+
+
+// ─── CSS Sprite Background ────────────────────────────────────────────────────
+
+const SPRITES = Array.from({ length: 32 }, (_, i) => ({
+  id:       i,
+  left:     `${(i * 37 + 11) % 97}%`,
+  top:      `${(i * 53 + 7)  % 94}%`,
+  size:     i % 3 === 0 ? 4 : i % 3 === 1 ? 2 : 3,
+  delay:    `${((i * 1.3) % 6).toFixed(1)}s`,
+  duration: `${(3 + (i * 0.7) % 4).toFixed(1)}s`,
+  opacity:  i % 4 === 0 ? 0.18 : 0.10,
+}));
+
+function CssSpriteBackground() {
+  return (
+    <div className="ff-sprite-bg" aria-hidden="true">
+      {SPRITES.map(s => (
+        <div
+          key={s.id}
+          className="ff-sprite"
+          style={{
+            left:              s.left,
+            top:               s.top,
+            width:             s.size,
+            height:            s.size,
+            opacity:           s.opacity,
+            animationDelay:    s.delay,
+            animationDuration: s.duration,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 const MOCK_FLAGS = [
   { key: "stripe-checkout-v2", name: "Stripe Checkout v2", enabled: true,  rollout: 10,  evals: 12480, uplift: "+18.3%", upliftDir: "up"      as const, rule: "percentage:10"  },
   { key: "zendesk-feature",    name: "Zendesk AI Bot",     enabled: true,  rollout: 100, evals: 8941,  uplift: "+7.1%",  upliftDir: "up"      as const, rule: "userGroup:beta" },
@@ -379,6 +415,12 @@ export default function HomePage() {
 
   return (
     <div className="ff-home-wrap">
+
+      {/* ── пиксельный фон ── */}
+      <div className="ff-pixel-bg">
+        <CssSpriteBackground />
+      </div>
+
 
       {/* HERO */}
       <section className="ff-hero">

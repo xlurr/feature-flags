@@ -970,6 +970,44 @@
   flex-shrink: 0;
 }
 
+
+/* ─── CSS Sprite Background ───────────────────────────────────── */
+
+.ff-sprite-bg {
+  position:       absolute;
+  inset:          0;
+  pointer-events: none;
+  overflow:       hidden;
+}
+
+.ff-sprite {
+  position:                  absolute;
+  background:                hsl(var(--primary));
+  border-radius:             0;
+  animation-name:            ff-sprite-blink;
+  animation-timing-function: steps(1, end);
+  animation-iteration-count: infinite;
+  will-change:               opacity;
+}
+
+@keyframes ff-sprite-blink {
+  0%,  100% { opacity: inherit; }
+  15%        { opacity: 0;       }
+  30%        { opacity: inherit; }
+  55%        { opacity: 0.02;    }
+  70%        { opacity: inherit; }
+  85%        { opacity: 0;       }
+}
+
+.ff-sprite:nth-child(4n) {
+  animation-name: ff-sprite-pulse;
+}
+
+@keyframes ff-sprite-pulse {
+  0%,  100% { opacity: 0.18; transform: scale(1);   }
+  50%        { opacity: 0.04; transform: scale(0.5); }
+}
+
 @keyframes ff-fadeUp {
   from {
     opacity: 0;
