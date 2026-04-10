@@ -90,11 +90,13 @@ func (s *FlagService) CreateFlag(ctx context.Context, projectID, flagKey, name, 
 	}
 
 	diff, _ := json.Marshal(map[string]string{"action": "created", "flagkey": flagKey})
-	s.audit.CreateEvent(ctx, &domain.AuditEvent{ //nolint:errcheck
+	if err := s.audit.CreateEvent(ctx, &domain.AuditEvent{
 		FlagID:      flag.ID,
 		EventType:   "CREATE",
 		DiffPayload: string(diff),
-	})
+	}); err != nil {
+		s.logger.Error("FlagService.CreateFlag audit failed", slog.Any("err", err))
+	}
 
 	// Pattern #7: post-action hook
 	go s.eventBus.Publish(projectID, SSEEvent{
@@ -119,11 +121,13 @@ func (s *FlagService) DeleteFlag(ctx context.Context, id string) error {
 	}
 
 	diff, _ := json.Marshal(map[string]string{"action": "deleted", "flagkey": existing.FlagKey})
-	s.audit.CreateEvent(ctx, &domain.AuditEvent{ //nolint:errcheck
+	if err := s.audit.CreateEvent(ctx, &domain.AuditEvent{
 		FlagID:      id,
 		EventType:   "DELETE",
 		DiffPayload: string(diff),
-	})
+	}); err != nil {
+		s.logger.Error("FlagService.DeleteFlag audit failed", slog.Any("err", err))
+	}
 
 	projectID := existing.ProjectID
 	go s.eventBus.Publish(projectID, SSEEvent{
@@ -148,12 +152,14 @@ func (s *FlagService) ToggleFlag(ctx context.Context, flagID, envID string) (*do
 		action = "enabled"
 	}
 	diff, _ := json.Marshal(map[string]string{"action": action, "flagid": flagID, "envid": envID})
-	s.audit.CreateEvent(ctx, &domain.AuditEvent{ //nolint:errcheck
+	if err := s.audit.CreateEvent(ctx, &domain.AuditEvent{
 		FlagID:        flagID,
 		EnvironmentID: envID,
 		EventType:     "TOGGLE",
 		DiffPayload:   string(diff),
-	})
+	}); err != nil {
+		s.logger.Error("FlagService.ToggleFlag audit failed", slog.Any("err", err))
+	}
 
 	// Явные параметры в горутине — безопасный capture (не closure over loop vars)
 	go func(fid, eid string) {

@@ -83,7 +83,9 @@ func (r *FlagRepo) GetFlags(ctx context.Context, projectID string) ([]domain.Fla
 		}
 		if stateID != "" {
 			var rules []domain.TargetingRule
-			_ = json.Unmarshal(targetingRaw, &rules)
+			if err := json.Unmarshal(targetingRaw, &rules); err != nil {
+				rules = []domain.TargetingRule{}
+			}
 			if rules == nil {
 				rules = []domain.TargetingRule{}
 			}
@@ -168,7 +170,9 @@ func (r *FlagRepo) GetFlag(ctx context.Context, id string) (*domain.FlagWithStat
 		}
 		if stateID != "" {
 			var rules []domain.TargetingRule
-			_ = json.Unmarshal(targetingRaw, &rules)
+			if err := json.Unmarshal(targetingRaw, &rules); err != nil {
+				rules = []domain.TargetingRule{}
+			}
 			if rules == nil {
 				rules = []domain.TargetingRule{}
 			}

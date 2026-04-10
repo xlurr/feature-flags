@@ -80,11 +80,11 @@ export default function EvalPage() {
 
   return (
     <div className="flex-1 overflow-auto">
-      <header className="h-11 shrink-0 border-b border-border flex items-center px-6 bg-card">
+      <header className="h-12 shrink-0 border-b border-border flex items-center px-6 bg-card">
         <h1 className="text-sm font-semibold text-foreground">Eval API Tester</h1>
       </header>
 
-      <div className="p-6 max-w-[860px] mx-auto space-y-5">
+      <div className="p-6 max-w-[860px] mx-auto space-y-5" data-tour="eval-section">
         {/* API Key selector */}
         <div className="bg-card border border-card-border rounded-lg p-5">
           <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-3">API Key</h3>

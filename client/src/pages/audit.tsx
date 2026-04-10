@@ -1,14 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { AuditEventFull } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const EVENT_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  CREATE: { label: "CREATE", color: "bg-emerald-500/10 text-emerald-600" },
-  DELETE: { label: "DELETE", color: "bg-destructive/10 text-destructive" },
-  TOGGLE: { label: "TOGGLE", color: "bg-primary/10 text-primary" },
-  UPDATE_RULES: { label: "UPDATE", color: "bg-amber-500/10 text-amber-600" },
-  UPDATE_ENV: { label: "UPDATE", color: "bg-blue-500/10 text-blue-600" },
-};
+import { EVENT_TYPE_STYLES } from "@/lib/constants";
 
 export default function AuditPage() {
   const { data: events, isLoading } = useQuery<AuditEventFull[]>({
@@ -17,12 +10,12 @@ export default function AuditPage() {
 
   return (
     <div className="flex-1 overflow-auto">
-      <header className="h-12 shrink-0 border-b border-border flex items-center px-6">
+      <header className="h-12 shrink-0 border-b border-border flex items-center px-6 bg-card">
         <h1 className="text-sm font-semibold text-foreground">Журнал изменений</h1>
       </header>
 
       <div className="p-6">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto" data-tour="audit-table">
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4].map((i) => (
@@ -42,11 +35,12 @@ export default function AuditPage() {
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {(events ?? []).map((event) => {
-                    const typeInfo = EVENT_TYPE_LABELS[event.eventType] ?? {
+                    const typeInfo = EVENT_TYPE_STYLES[event.eventType] ?? {
                       label: event.eventType,
                       color: "bg-muted text-muted-foreground",
                     };
-                    const diff = event.diffPayload ? JSON.parse(event.diffPayload) : {};
+                    let diff: Record<string, string> = {};
+                    try { diff = event.diffPayload ? JSON.parse(event.diffPayload) : {}; } catch { /* malformed JSON */ }
 
                     return (
                       <tr

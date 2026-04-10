@@ -6,11 +6,12 @@ const PROJECT_ID = DEFAULT_PROJECT_ID;
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import {
   MagnifyingGlass, Plus, ToggleLeft, ToggleRight, Trash, X,
-  Archive, ArrowCounterClockwise, DownloadSimple, Warning,
+  Archive, ArrowCounterClockwise, DownloadSimple, Warning, Sliders,
 } from "@phosphor-icons/react";
 import type { FlagWithStates, Environment } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import FlagTargetingPanel from "@/components/FlagTargetingPanel";
 
 // archivedAt отсутствует в SQLite BFF схеме, добавляем как опциональное поле.
 // PostgreSQL backend добавит его в Stage 7 (migrations + domain.FeatureFlag).
@@ -92,6 +93,7 @@ export default function FlagsPage() {
   const [filterTab, setFilterTab] = useState<FilterTab>("all");
   const [showCreate, setShowCreate] = useState(false);
   const [newFlag, setNewFlag] = useState({ name: "", key: "", description: "" });
+  const [selectedFlag, setSelectedFlag] = useState<FlagWithStates | null>(null);
 
   const { data: flags, isLoading } = useQuery<FlagWithStates[]>({
     queryKey: [`flags/${PROJECT_ID}`],
@@ -160,11 +162,14 @@ export default function FlagsPage() {
     archived: categorized.archived.length,
   };
 
-  const filtered = (categorized[filterTab] ?? []).filter(
-    (f) =>
-      f.name.toLowerCase().includes(search.toLowerCase()) ||
-      f.flagKey.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const lowerSearch = search.toLowerCase();
+    return (categorized[filterTab] ?? []).filter(
+      (f) =>
+        f.name.toLowerCase().includes(lowerSearch) ||
+        f.flagKey.toLowerCase().includes(lowerSearch)
+    );
+  }, [categorized, filterTab, search]);
 
   const staleCount = categorized.stale.length;
 
@@ -194,7 +199,7 @@ export default function FlagsPage() {
   return (
     <div className="flex-1 overflow-auto">
       {/* Sub-bar */}
-      <header className="h-11 shrink-0 border-b border-border flex items-center justify-between px-6 bg-card gap-4">
+      <header className="h-12 shrink-0 border-b border-border flex items-center justify-between px-6 bg-card gap-4">
         <h1 className="text-sm font-semibold text-foreground">Feature Flags</h1>
         <div className="flex items-center gap-2">
           <button
@@ -276,7 +281,7 @@ export default function FlagsPage() {
             ))}
           </div>
         ) : (
-          <div className="bg-card border border-card-border rounded-lg overflow-hidden">
+          <div className="bg-card border border-card-border rounded-lg overflow-hidden" data-tour="flags-table">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-border text-xs text-muted-foreground">
@@ -378,17 +383,26 @@ export default function FlagsPage() {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => {
-                              if (confirm(`Delete "${flag.name}"?`)) {
-                                deleteMutation.mutate(flag.id);
-                              }
-                            }}
-                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
-                            data-testid={`delete-${flag.id}`}
-                          >
-                            <Trash size={14} />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setSelectedFlag(flag)}
+                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-all"
+                              title="Targeting rules"
+                            >
+                              <Sliders size={14} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Delete "${flag.name}"?`)) {
+                                  deleteMutation.mutate(flag.id);
+                                }
+                              }}
+                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                              data-testid={`delete-${flag.id}`}
+                            >
+                              <Trash size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -478,6 +492,14 @@ export default function FlagsPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Targeting Panel */}
+      {selectedFlag && (
+        <FlagTargetingPanel
+          flag={selectedFlag}
+          onClose={() => setSelectedFlag(null)}
+        />
       )}
     </div>
   );

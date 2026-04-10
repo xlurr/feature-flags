@@ -116,6 +116,18 @@ export class DatabaseStorage implements IStorage {
     return db.insert(environments).values(env).returning().get()
   }
 
+  async rotateApiKey(envId: number): Promise<Environment | undefined> {
+    const newKey = 'ff_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+    db.update(environments).set({ clientApiKey: newKey }).where(eq(environments.id, envId)).run();
+    return db.select().from(environments).where(eq(environments.id, envId)).get();
+  }
+
+  async deleteEnvironment(id: number): Promise<void> {
+    // Delete flag states for this environment first
+    db.delete(flagStates).where(eq(flagStates.environmentId, id)).run();
+    db.delete(environments).where(eq(environments.id, id)).run();
+  }
+
   /* ── Feature Flags ── */
   async getFlags(projectId: number): Promise<FlagWithStates[]> {
     const flags = db

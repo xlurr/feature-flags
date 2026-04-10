@@ -16,10 +16,10 @@ function StatCard({
   return (
     <div className="bg-card border border-card-border rounded-lg p-4 flex items-start gap-3" data-testid={testId}>
       <div className={`p-2 rounded-md ${color}`}>
-        <Icon size={18} weight="duotone" />
+        <Icon size={20} weight="duotone" />
       </div>
       <div>
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
         <p className="text-2xl font-semibold text-foreground mt-0.5 tabular-nums">{value}</p>
       </div>
     </div>
@@ -97,7 +97,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex-1 overflow-auto">
-      <header className="h-11 shrink-0 border-b border-border flex items-center px-6 bg-card">
+      <header className="h-12 shrink-0 border-b border-border flex items-center px-6 bg-card">
         <h1 className="text-sm font-semibold text-foreground">Dashboard</h1>
       </header>
 
@@ -119,7 +119,7 @@ export default function DashboardPage() {
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-3 gap-4 mb-6" data-tour="stats-grid">
             <StatCard
               icon={Flag}
               label="Total Flags"
@@ -144,7 +144,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-4 mb-6" data-tour="env-status">
           {/* Env progress */}
           <div className="bg-card border border-card-border rounded-lg overflow-hidden">
             <div className="px-5 py-3 border-b border-border/60">

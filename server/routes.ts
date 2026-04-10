@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import crypto from "crypto";
 import { storage } from "./storage";
 
 export async function registerRoutes(
@@ -81,6 +82,45 @@ function resolveProjectId(rawId: string): number {
       res.json(envs);
     } catch (error) {
       res.status(500).json({ error: "Failed to load environments" });
+    }
+  });
+
+  app.post("/api/environments", async (req, res) => {
+    try {
+      const { projectId, envKey, name } = req.body;
+      const pid = resolveProjectId(String(projectId));
+      const clientApiKey = 'ff_' + (envKey || 'env') + '_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+      const env = await storage.createEnvironment({
+        projectId: pid,
+        envKey: envKey || name.toLowerCase().replace(/\s+/g, '-'),
+        name,
+        clientApiKey,
+        createdAt: new Date().toISOString(),
+      });
+      res.status(201).json(env);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create environment" });
+    }
+  });
+
+  app.post("/api/environments/:id/rotate-key", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const env = await storage.rotateApiKey(id);
+      if (!env) return res.status(404).json({ error: "Environment not found" });
+      res.json(env);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to rotate key" });
+    }
+  });
+
+  app.delete("/api/environments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteEnvironment(id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete environment" });
     }
   });
 
@@ -231,7 +271,7 @@ function resolveProjectId(rawId: string): number {
   /* ── Audit Log ── */
   app.get("/api/audit", async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 50;
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 500);
       const events = await storage.getAuditEvents(undefined, limit);
       res.json(events);
     } catch (error) {

@@ -7,6 +7,7 @@ import {
   Gear,
   SignOut,
   Play,
+  Monitor,
 } from "@phosphor-icons/react";
 import { useState, useEffect } from "react";
 import { useProjectStream } from "@/hooks/useProjectStream";
@@ -24,24 +25,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sseConnected, setSseConnected] = useState(false);
   const { t } = useLang();
 
-  useProjectStream(PROJECT_ID);
+  const sseStatus = useProjectStream(PROJECT_ID);
+
+  useEffect(() => {
+    setSseConnected(sseStatus === "connected");
+  }, [sseStatus]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
-
-  useEffect(() => {
-    const es = new EventSource(`/api/stream/${PROJECT_ID}`);
-    es.onopen = () => setSseConnected(true);
-    es.onerror = () => setSseConnected(false);
-    return () => es.close();
-  }, []);
 
   const NAVITEMS = [
   { path: "/dashboard", label: t.dashboard, icon: ChartBar },
   { path: "/flags",     label: t.flags,     icon: Flag },
   { path: "/audit",     label: t.audit,     icon: ClockCounterClockwise },
   { path: "/eval",      label: t.eval,      icon: Play },
+  { path: "/demo",      label: t.demo,      icon: Monitor },
   { path: "/settings",  label: t.settings,  icon: Gear },
   ];
 
@@ -51,7 +50,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Link href="/">
           <div className="ff-topnav-logo" onClick={() => navigate("/")} role="button" style={{ cursor: "pointer" }}>
             <div className="ff-topnav-logo-mark">
-              <ShieldCheck size={14} weight="bold" className="text-primary-foreground" />
+              <ShieldCheck size={16} weight="bold" className="text-primary-foreground" />
             </div>
             <span className="ff-topnav-logo-text">FF Manager</span>
           </div>
@@ -66,7 +65,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   className={`ff-nav-item${isActive ? " active" : ""}`}
                   data-testid={`nav-item${path.replace("/", "-") || "-dashboard"}`}
                 >
-                  <Icon size={14} weight={isActive ? "fill" : "regular"} />
+                  <Icon size={16} weight={isActive ? "fill" : "regular"} />
                   {label}
                 </button>
               </Link>

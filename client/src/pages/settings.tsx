@@ -6,7 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Environment, User } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Key, Users, Globe, Trash, CopySimple, ArrowsClockwise, Warning } from "@phosphor-icons/react";
+import { Key, Users, Globe, Trash, CopySimple, ArrowsClockwise, Warning, Plus } from "@phosphor-icons/react";
 import { useToast } from "@/hooks/use-toast";
 
 type SettingsTab = "environments" | "team" | "project";
@@ -14,7 +14,7 @@ type SettingsTab = "environments" | "team" | "project";
 function MaskedKey({ value }: { value: string }) {
   const [show, setShow] = useState(false);
   const { toast } = useToast();
-  const masked = value.slice(0, 6) + "••••••••";
+  const masked = value.slice(0, 8) + "••••••••";
 
   function copy() {
     navigator.clipboard.writeText(value);
@@ -43,7 +43,89 @@ function MaskedKey({ value }: { value: string }) {
   );
 }
 
+function AddEnvironmentModal({ onClose }: { onClose: () => void }) {
+  const [name, setName] = useState("");
+  const [envKey, setEnvKey] = useState("");
+  const { toast } = useToast();
+
+  const create = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", "/api/environments", {
+        projectId: PROJECT_ID,
+        envKey: envKey || name.toLowerCase().replace(/\s+/g, "-"),
+        name,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`environments/${PROJECT_ID}`] });
+      toast({ title: "Environment created" });
+      onClose();
+    },
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="bg-card border border-card-border rounded-lg p-6 w-full max-w-md shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-sm font-semibold text-foreground mb-4">Add Environment</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-foreground mb-1 uppercase tracking-wide">Name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Canary"
+              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-foreground mb-1 uppercase tracking-wide">Key</label>
+            <input
+              value={envKey}
+              onChange={(e) => setEnvKey(e.target.value)}
+              placeholder="auto from name"
+              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none font-mono"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={onClose} className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground rounded-md border border-border hover:bg-muted transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={() => create.mutate()}
+            disabled={!name || create.isPending}
+            className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {create.isPending ? "Creating..." : "Create"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EnvironmentsTab({ envs, isLoading }: { envs?: Environment[]; isLoading: boolean }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const { toast } = useToast();
+
+  const rotateMut = useMutation({
+    mutationFn: (envId: number) => apiRequest("POST", `/api/environments/${envId}/rotate-key`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`environments/${PROJECT_ID}`] });
+      toast({ title: "API key rotated" });
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (envId: number) => apiRequest("DELETE", `/api/environments/${envId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`environments/${PROJECT_ID}`] });
+      toast({ title: "Environment deleted" });
+    },
+  });
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -51,6 +133,13 @@ function EnvironmentsTab({ envs, isLoading }: { envs?: Environment[]; isLoading:
           <h3 className="text-sm font-semibold text-foreground">Environments</h3>
           <p className="text-xs text-muted-foreground mt-0.5">API keys for SDK integration</p>
         </div>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90 transition-opacity"
+        >
+          <Plus size={14} weight="bold" />
+          Add Environment
+        </button>
       </div>
       <div className="bg-card border border-card-border rounded-lg overflow-hidden">
         <table className="w-full text-left border-collapse">
@@ -59,7 +148,7 @@ function EnvironmentsTab({ envs, isLoading }: { envs?: Environment[]; isLoading:
               <th className="px-4 py-2.5 font-medium">Environment</th>
               <th className="px-4 py-2.5 font-medium">Key</th>
               <th className="px-4 py-2.5 font-medium">API Key</th>
-              <th className="px-4 py-2.5 font-medium w-24 text-right">Actions</th>
+              <th className="px-4 py-2.5 font-medium w-28 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
@@ -90,16 +179,26 @@ function EnvironmentsTab({ envs, isLoading }: { envs?: Environment[]; isLoading:
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
-                          title="Rotate key (coming soon)"
-                          className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors opacity-50 cursor-not-allowed"
+                          title="Rotate API key"
+                          onClick={() => {
+                            if (confirm(`Rotate API key for ${env.name}? The old key will stop working.`)) {
+                              rotateMut.mutate(env.id);
+                            }
+                          }}
+                          className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
                         >
-                          <ArrowsClockwise size={13} />
+                          <ArrowsClockwise size={14} />
                         </button>
                         <button
-                          title="Delete (coming soon)"
-                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors opacity-50 cursor-not-allowed"
+                          title="Delete environment"
+                          onClick={() => {
+                            if (confirm(`Delete ${env.name}? This will remove all flag states for this environment.`)) {
+                              deleteMut.mutate(env.id);
+                            }
+                          }}
+                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
                         >
-                          <Trash size={13} />
+                          <Trash size={14} />
                         </button>
                       </div>
                     </td>
@@ -111,6 +210,7 @@ function EnvironmentsTab({ envs, isLoading }: { envs?: Environment[]; isLoading:
       <div className="mt-4 px-4 py-3 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 text-xs">
         <strong>Eval API:</strong> <code className="font-mono">GET /eval/:apiKey</code> — returns all flag states for the environment.
       </div>
+      {showAdd && <AddEnvironmentModal onClose={() => setShowAdd(false)} />}
     </div>
   );
 }
@@ -124,7 +224,7 @@ function TeamTab({ users, isLoading }: { users?: User[]; isLoading: boolean }) {
           <p className="text-xs text-muted-foreground mt-0.5">Manage who has access</p>
         </div>
         <button
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90 transition-opacity opacity-50 cursor-not-allowed"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90 transition-opacity opacity-50 cursor-not-allowed"
           title="Invite (coming in Stage 6)"
         >
           Invite
@@ -163,7 +263,7 @@ function TeamTab({ users, isLoading }: { users?: User[]; isLoading: boolean }) {
                     <td className="px-4 py-3">
                       <span
                         className={[
-                          "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide uppercase",
+                          "inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold tracking-wide uppercase",
                           user.role === "admin"
                             ? "bg-primary/10 text-primary"
                             : "bg-muted text-muted-foreground",
@@ -206,7 +306,7 @@ function ProjectTab() {
             </label>
             <input
               defaultValue="Feature Flags Demo"
-              className="w-full max-w-sm px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
+              className="w-full max-w-sm px-3 py-2 text-sm border border-border rounded-md bg-card focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
             />
           </div>
           <div>
@@ -216,12 +316,12 @@ function ProjectTab() {
             <input
               readOnly
               value={PROJECT_KEY}
-              className="w-full max-w-sm px-3 py-1.5 text-sm border border-border rounded-md bg-muted font-mono text-xs text-muted-foreground outline-none cursor-not-allowed"
+              className="w-full max-w-sm px-3 py-2 text-sm border border-border rounded-md bg-muted font-mono text-xs text-muted-foreground outline-none cursor-not-allowed"
             />
             <p className="text-xs text-muted-foreground mt-1">Project key cannot be changed after creation.</p>
           </div>
           <div className="pt-1">
-            <button className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90 transition-opacity opacity-60 cursor-not-allowed">
+            <button className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90 transition-opacity opacity-60 cursor-not-allowed">
               Save Changes
             </button>
           </div>
@@ -244,11 +344,11 @@ function ProjectTab() {
             placeholder={`Type "${PROJECT_KEY}" to confirm`}
             value={confirmDelete}
             onChange={(e) => setConfirmDelete(e.target.value)}
-            className="px-3 py-1.5 text-xs border border-border rounded-md bg-card max-w-xs outline-none focus:ring-1 focus:ring-destructive/30"
+            className="px-3 py-1.5 text-sm border border-border rounded-md bg-card max-w-xs outline-none focus:ring-1 focus:ring-destructive/30"
           />
           <button
             disabled={confirmDelete !== PROJECT_KEY}
-            className="px-3 py-1.5 text-xs bg-destructive text-destructive-foreground rounded-md font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 text-sm bg-destructive text-destructive-foreground rounded-md font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Delete Project
           </button>
@@ -264,7 +364,9 @@ export default function SettingsPage() {
   const { data: envs, isLoading: envsLoading } = useQuery<Environment[]>({
     queryKey: [`environments/${DEFAULT_PROJECT_ID}`],
   });
-  const users: any[] = []; const usersLoading = false;
+  const { data: users, isLoading: usersLoading } = useQuery<User[]>({
+    queryKey: ["users"],
+  });
 
   const tabs: { key: SettingsTab; label: string; icon: typeof Key }[] = [
     { key: "environments", label: "Environments", icon: Globe },
@@ -274,12 +376,11 @@ export default function SettingsPage() {
 
   return (
     <div className="flex-1 overflow-auto">
-      <header className="h-11 shrink-0 border-b border-border flex items-center px-6 bg-card">
+      <header className="h-12 shrink-0 border-b border-border flex items-center px-6 bg-card">
         <h1 className="text-sm font-semibold text-foreground">Settings</h1>
       </header>
 
       <div className="p-6 max-w-[860px] mx-auto">
-        {/* Settings tabs */}
         <div className="flex border-b border-border mb-6 gap-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -294,7 +395,7 @@ export default function SettingsPage() {
                     : "text-muted-foreground border-transparent hover:text-foreground",
                 ].join(" ")}
               >
-                <Icon size={14} />
+                <Icon size={15} />
                 {tab.label}
               </button>
             );

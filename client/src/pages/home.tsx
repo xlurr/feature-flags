@@ -274,17 +274,20 @@ function LogoStage() {
 function useCounter(target: number, decimals = 0, delay = 300) {
   const [val, setVal] = useState(0);
   useEffect(() => {
-    const t = setTimeout(() => {
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const timeoutId = setTimeout(() => {
       let cur = 0;
       const step = target / 40;
-      const id = setInterval(() => {
+      intervalId = setInterval(() => {
         cur = Math.min(cur + step, target);
         setVal(parseFloat(cur.toFixed(decimals)));
-        if (cur >= target) clearInterval(id);
+        if (cur >= target && intervalId) clearInterval(intervalId);
       }, 16);
-      return () => clearInterval(id);
     }, delay);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [target, decimals, delay]);
   return val;
 }
