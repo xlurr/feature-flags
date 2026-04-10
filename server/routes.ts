@@ -271,11 +271,21 @@ function resolveProjectId(rawId: string): number {
   /* ── Audit Log ── */
   app.get("/api/audit", async (req, res) => {
     try {
-      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 500);
-      const events = await storage.getAuditEvents(undefined, limit);
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 500);
+      const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+      const events = await storage.getAuditEvents(undefined, limit, offset);
       res.json(events);
     } catch (error) {
       res.status(500).json({ error: "Failed to load audit log" });
+    }
+  });
+
+  app.get("/api/audit/count", async (_req, res) => {
+    try {
+      const count = await storage.getAuditEventsCount();
+      res.json({ count });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to count audit events" });
     }
   });
 

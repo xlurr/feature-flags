@@ -141,7 +141,7 @@ function EnvironmentsTab({ envs, isLoading }: { envs?: Environment[]; isLoading:
           Add Environment
         </button>
       </div>
-      <div className="bg-card border border-card-border rounded-lg overflow-hidden">
+      <div className="bg-card border border-card-border rounded-lg overflow-hidden" data-tour="env-table">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-border text-xs text-muted-foreground">

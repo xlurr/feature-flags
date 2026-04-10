@@ -44,10 +44,11 @@ coverage/
 # ── Docker 
 docker-compose.override.yml
 
-# ── База данных / миграции (локальные дампы) 
+# ── База данных / миграции (локальные дампы)
 *.sql.bak
 *.dump
 pgdata/
+data/
 
 # ── IDE / редакторы 
 .vscode/settings.json

@@ -259,8 +259,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   /* ── Audit ── */
-  async getAuditEvents(_projectId?: number, limit: number = 50): Promise<AuditEventFull[]> {
-    const events = db.select().from(auditEvents).orderBy(desc(auditEvents.createdAt)).limit(limit).all()
+  async getAuditEvents(_projectId?: number, limit: number = 50, offset: number = 0): Promise<AuditEventFull[]> {
+    const events = db.select().from(auditEvents).orderBy(desc(auditEvents.createdAt)).limit(limit).offset(offset).all()
 
     return events.map(event => {
       const actor = event.actorId ? db.select().from(users).where(eq(users.id, event.actorId)).get() : undefined
@@ -278,6 +278,11 @@ export class DatabaseStorage implements IStorage {
         envKey: env?.envKey,
       }
     })
+  }
+
+  async getAuditEventsCount(): Promise<number> {
+    const result = db.select({ count: sql<number>`count(*)` }).from(auditEvents).get();
+    return result?.count ?? 0;
   }
 
   async createAuditEvent(event: InsertAuditEvent): Promise<AuditEvent> {

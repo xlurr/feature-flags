@@ -213,6 +213,7 @@ export default function FlagsPage() {
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-1.5 px-3 py-1 text-xs bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90 transition-opacity"
             data-testid="button-create-flag"
+            data-tour="create-flag-btn"
           >
             <Plus size={13} />
             New Flag

@@ -16,65 +16,73 @@ export interface TourStep {
 // ─── Steps config ────────────────────────────────────────────────────────────
 
 export const TOUR_STEPS: TourStep[] = [
+  // 1. Dashboard: real-time metrics via SSE
   {
-    id: "welcome",
-    targetSelector: ".ff-topnav-links",
-    route: "/demo",
+    id: "dashboard-stats",
+    targetSelector: "[data-tour='stats-grid']",
+    route: "/dashboard",
     titleKey: "tourStep0Title",
     descKey: "tourStep0Desc",
     placement: "bottom",
   },
+  // 2. Dashboard: multi-environment status
   {
-    id: "dashboard-stats",
-    targetSelector: "[data-tour='stats-grid']",
+    id: "dashboard-env",
+    targetSelector: "[data-tour='env-status']",
     route: "/dashboard",
     titleKey: "tourStep1Title",
     descKey: "tourStep1Desc",
     placement: "bottom",
   },
+  // 3. Flags: CRUD + per-env toggle
   {
-    id: "dashboard-env",
-    targetSelector: "[data-tour='env-status']",
-    route: "/dashboard",
+    id: "flags-table",
+    targetSelector: "[data-tour='flags-table']",
+    route: "/flags",
     titleKey: "tourStep2Title",
     descKey: "tourStep2Desc",
     placement: "bottom",
   },
+  // 4. Flags: create flag -> auto states for all envs + audit event
   {
-    id: "flags-table",
-    targetSelector: "[data-tour='flags-table']",
+    id: "create-flag",
+    targetSelector: "[data-tour='create-flag-btn']",
     route: "/flags",
     titleKey: "tourStep3Title",
     descKey: "tourStep3Desc",
     placement: "bottom",
   },
+  // 5. Eval API: in-memory cache, CRC32 rollout
   {
-    id: "audit-log",
-    targetSelector: "[data-tour='audit-table']",
-    route: "/audit",
+    id: "eval-api",
+    targetSelector: "[data-tour='eval-section']",
+    route: "/eval",
     titleKey: "tourStep4Title",
     descKey: "tourStep4Desc",
     placement: "bottom",
   },
+  // 6. SSE: real-time connection indicator
   {
-    id: "eval-api",
-    targetSelector: "[data-tour='eval-section']",
+    id: "sse-indicator",
+    targetSelector: ".ff-sse-dot",
     route: "/eval",
     titleKey: "tourStep5Title",
     descKey: "tourStep5Desc",
     placement: "bottom",
   },
+  // 7. Audit: full change history with pagination
   {
-    id: "sse-indicator",
-    targetSelector: ".ff-sse-dot",
-    route: "/eval",
+    id: "audit-log",
+    targetSelector: "[data-tour='audit-table']",
+    route: "/audit",
     titleKey: "tourStep6Title",
     descKey: "tourStep6Desc",
     placement: "bottom",
   },
+  // 8. Settings: API key management (create, rotate, delete)
   {
-    id: "i18n-theme",
-    targetSelector: ".ff-lang-switch",
+    id: "env-management",
+    targetSelector: "[data-tour='env-table']",
     route: "/settings",
     titleKey: "tourStep7Title",
     descKey: "tourStep7Desc",

@@ -164,10 +164,31 @@ const CURRENT_STACK = [
   },
 ];
 
+const FEATURES = [
+  { titleRu: "Eval API + кеш", titleEn: "Eval API + Cache", descRu: "GET /eval/:apiKey с in-memory кешем (TTL 5 мин, инвалидация по env/project). Latency < 1 мс.", descEn: "GET /eval/:apiKey with in-memory cache (TTL 5min, per-env/project invalidation). Latency < 1ms." },
+  { titleRu: "Multi-environment", titleEn: "Multi-environment", descRu: "dev / staging / production. Каждый флаг включается независимо в каждом окружении.", descEn: "dev / staging / production. Each flag is toggled independently per environment." },
+  { titleRu: "Rollout по проценту", titleEn: "Percentage Rollout", descRu: "Детерминированный rollout через CRC32(flagID) % 100. Без рандома, один и тот же пользователь всегда получает одинаковый результат.", descEn: "Deterministic rollout via CRC32(flagID) % 100. No randomness, same user always gets same result." },
+  { titleRu: "Real-time SSE", titleEn: "Real-time SSE", descRu: "EventBus pub/sub по projectID. При toggle флага UI обновляется мгновенно через TanStack Query invalidation.", descEn: "EventBus pub/sub by projectID. On flag toggle, UI updates instantly via TanStack Query invalidation." },
+  { titleRu: "Targeting rules", titleEn: "Targeting Rules", descRu: "Типы правил: percentage, user_id, user_group, email_domain, country, custom. Хранятся в JSONB.", descEn: "Rule types: percentage, user_id, user_group, email_domain, country, custom. Stored as JSONB." },
+  { titleRu: "Аудит-лог", titleEn: "Audit Log", descRu: "Полная история CREATE / DELETE / TOGGLE / UPDATE_RULES с актором, временем и diff payload.", descEn: "Full history of CREATE / DELETE / TOGGLE / UPDATE_RULES with actor, timestamp and diff payload." },
+  { titleRu: "API Key management", titleEn: "API Key Management", descRu: "Создание, ротация и удаление ключей окружений. При ротации старый ключ перестает работать.", descEn: "Create, rotate and delete environment keys. On rotation the old key stops working immediately." },
+  { titleRu: "i18n + тема", titleEn: "i18n + Theme", descRu: "Русский / английский с переключением в topbar. Темная и светлая тема с сохранением в localStorage.", descEn: "Russian / English toggle in topbar. Dark and light theme persisted in localStorage." },
+];
+
+const PRINCIPLES = [
+  { titleRu: "Clean Architecture", titleEn: "Clean Architecture", descRu: "domain > ports > services > adapters. Все зависимости направлены внутрь.", descEn: "domain > ports > services > adapters. All dependencies point inward." },
+  { titleRu: "Разделение ответственности", titleEn: "Separation of Concerns", descRu: "Нет SQL в сервисах, нет бизнес-логики в хендлерах. Интерфейсы между слоями.", descEn: "No SQL in services, no business logic in handlers. Interfaces between layers." },
+  { titleRu: "Structured logging", titleEn: "Structured Logging", descRu: "JSON-логи через log/slog с контекстом: ключ, значение, ошибка.", descEn: "JSON logs via log/slog with context: key, value, error." },
+  { titleRu: "Graceful shutdown", titleEn: "Graceful Shutdown", descRu: "Корректное завершение по SIGINT / SIGTERM. Пул соединений закрывается, SSE-подписки отменяются.", descEn: "Clean shutdown on SIGINT / SIGTERM. Connection pool closed, SSE subscriptions cancelled." },
+];
+
 const ROADMAP = [
   { stage: "0-5", labelRu: "Core system", labelEn: "Core system", descRu: "DB, repositories, services, DI, cache, SSE", descEn: "DB, repositories, services, DI, cache, SSE", status: "done" as const },
+  { stage: "7", labelRu: "Targeting rules UI", labelEn: "Targeting Rules UI", descRu: "Slider rollout, user_group/country dropdowns, per-env настройки", descEn: "Rollout slider, user_group/country dropdowns, per-env settings", status: "done" as const },
+  { stage: "+", labelRu: "API Key management", labelEn: "API Key Management", descRu: "Создание, ротация, удаление ключей окружений", descEn: "Create, rotate, delete environment keys", status: "done" as const },
+  { stage: "+", labelRu: "Demo + guided tour", labelEn: "Demo + Guided Tour", descRu: "Страница демо, интерактивный тур, pixel art, Jotai atoms", descEn: "Demo page, interactive tour, pixel art, Jotai atoms", status: "done" as const },
+  { stage: "+", labelRu: "QA audit + fixes", labelEn: "QA Audit + Fixes", descRu: "Memory leaks, DRY, error handling, useMemo, input validation", descEn: "Memory leaks, DRY, error handling, useMemo, input validation", status: "done" as const },
   { stage: "6", labelRu: "JWT аутентификация", labelEn: "JWT Authentication", descRu: "httpOnly cookies, bcrypt, RBAC (Admin/Viewer)", descEn: "httpOnly cookies, bcrypt, RBAC (Admin/Viewer)", status: "next" as const },
-  { stage: "7", labelRu: "Targeting rules", labelEn: "Targeting Rules", descRu: "Rollout по userId, group, percentage", descEn: "Rollout by userId, group, percentage", status: "future" as const },
   { stage: "8", labelRu: "Go SDK", labelEn: "Go SDK", descRu: "Клиентский SDK для микросервисов с SSE + polling", descEn: "Client SDK for microservices with SSE + polling", status: "future" as const },
   { stage: "9", labelRu: "Observability", labelEn: "Observability", descRu: "Prometheus метрики, OpenTelemetry tracing", descEn: "Prometheus metrics, OpenTelemetry tracing", status: "future" as const },
   { stage: "10", labelRu: "Multi-project UI", labelEn: "Multi-project UI", descRu: "Поддержка нескольких проектов, project switcher", descEn: "Multiple project support, project switcher", status: "future" as const },
@@ -222,6 +243,26 @@ export default function DemoPage() {
       {/* DIVIDER */}
       <div className="ff-section-divider"><hr /></div>
 
+      {/* FEATURES */}
+      <section className="ff-demo-section">
+        <h2 className="ff-demo-section-title">
+          <PixelIcon pixels={ICON_SSE} />
+          {isRu ? "Возможности" : "Features"}
+        </h2>
+        <div className="ff-demo-grid">
+          {FEATURES.map((f, idx) => (
+            <div className="ff-demo-card" key={idx}>
+              <div className="ff-demo-card-title" style={{ marginBottom: "0.375rem" }}>
+                {isRu ? f.titleRu : f.titleEn}
+              </div>
+              <div className="ff-demo-card-desc">
+                {isRu ? f.descRu : f.descEn}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* CURRENT TECH STACK */}
       <section className="ff-demo-section">
         <h2 className="ff-demo-section-title">
@@ -271,6 +312,26 @@ export default function DemoPage() {
               {idx < ARCH_NODES.length - 1 && (
                 <span className="ff-demo-arch-arrow">{">"}</span>
               )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* PRINCIPLES */}
+      <section className="ff-demo-section">
+        <h2 className="ff-demo-section-title">
+          <PixelIcon pixels={ICON_SHIELD} />
+          {isRu ? "Принципы" : "Principles"}
+        </h2>
+        <div className="ff-demo-grid">
+          {PRINCIPLES.map((p, idx) => (
+            <div className="ff-demo-card" key={idx}>
+              <div className="ff-demo-card-title" style={{ marginBottom: "0.375rem" }}>
+                {isRu ? p.titleRu : p.titleEn}
+              </div>
+              <div className="ff-demo-card-desc">
+                {isRu ? p.descRu : p.descEn}
+              </div>
             </div>
           ))}
         </div>
