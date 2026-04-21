@@ -49,14 +49,7 @@ const MOCK_FLAGS = [
 const EVAL_DATA = [420, 480, 510, 530, 490, 520, 560, 540, 580, 620, 780, 820, 850, 890];
 const CONV_DATA = [42,  48,  50,  52,  49,  51,  55,  53,  57,  61,  88,  96, 100, 112];
 
-// ─── Float config ─────────────────────────────────────────────────────────────
-
-const FLOAT_CONFIGS = [
-  { name: "ff-float-card-0", dur: "4.5s", delay: "0s"    },
-  { name: "ff-float-card-1", dur: "4.9s", delay: "0.7s"  },
-  { name: "ff-float-card-2", dur: "5.3s", delay: "1.3s"  },
-  { name: "ff-float-card-3", dur: "5.7s", delay: "0.3s"  },
-] as const;
+// ─── (Float config removed — slices layout) ─────────────────────────────────
 
 // ─── Pixel Lizard (gecko, 18×22, 4px) ────────────────────────────────────────
 
@@ -169,21 +162,10 @@ function FlagMiniList() {
   );
 }
 
-// ─── FloatingCard ─────────────────────────────────────────────────────────────
+// ─── Slice (static, no float) ────────────────────────────────────────────────
 
-function FloatingCard({ index, children }: { index: number; children: React.ReactNode }) {
-  const cfg = FLOAT_CONFIGS[index] ?? FLOAT_CONFIGS[0];
-  return (
-    <div
-      className="ff-logo-layer--1"
-      style={{
-        animation: `${cfg.name} ${cfg.dur} ease-in-out ${cfg.delay} infinite`,
-        willChange: "transform",
-      }}
-    >
-      {children}
-    </div>
-  );
+function Slice({ children }: { children: React.ReactNode }) {
+  return <div className="ff-logo-slice">{children}</div>;
 }
 
 // ─── LogoStage (4 карточки) ───────────────────────────────────────────────────
@@ -191,18 +173,18 @@ function FloatingCard({ index, children }: { index: number; children: React.Reac
 function LogoStage() {
   return (
     <div className="ff-logo-stage">
-      <div className="ff-logo-layers-grid">
+      <div className="ff-logo-slices">
 
         {/* 0 — ящерица */}
-        <FloatingCard index={0}>
+        <Slice>
           <PixelLizard />
           <span className="ff-logo-label">FF Manager</span>
           <span className="ff-logo-sub">FEATURE FLAGS</span>
           <FlagMiniList />
-        </FloatingCard>
+        </Slice>
 
         {/* 1 — environments */}
-        <FloatingCard index={1}>
+        <Slice>
           <span className="ff-logo-sub" style={{ marginBottom: ".25rem" }}>ENVIRONMENTS</span>
           <div style={{ display: "flex", flexDirection: "column", gap: ".375rem", width: "100%" }}>
             {[
@@ -220,10 +202,10 @@ function LogoStage() {
               </div>
             ))}
           </div>
-        </FloatingCard>
+        </Slice>
 
         {/* 2 — eval stats */}
-        <FloatingCard index={2}>
+        <Slice>
           <span className="ff-logo-sub" style={{ marginBottom: ".25rem" }}>EVAL API · &lt;1ms</span>
           <div style={{ display: "flex", flexDirection: "column", gap: ".5rem", width: "100%" }}>
             {[
@@ -240,10 +222,10 @@ function LogoStage() {
               <div style={{ height: "100%", width: "96.3%", background: "hsl(var(--primary))", borderRadius: 2 }} />
             </div>
           </div>
-        </FloatingCard>
+        </Slice>
 
         {/* 3 — rollout */}
-        <FloatingCard index={3}>
+        <Slice>
           <span className="ff-logo-sub" style={{ marginBottom: ".25rem" }}>ROLLOUT · CRC32</span>
           <div style={{ display: "flex", flexDirection: "column", gap: ".5rem", width: "100%" }}>
             {[
@@ -262,7 +244,7 @@ function LogoStage() {
               </div>
             ))}
           </div>
-        </FloatingCard>
+        </Slice>
 
       </div>
     </div>

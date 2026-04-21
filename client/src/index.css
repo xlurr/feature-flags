@@ -1027,38 +1027,41 @@
   align-items: flex-start;
   justify-content: flex-start;
   height: auto;
-  overflow: visible; /* убрали overflow-y: auto и max-height */
+  overflow: visible;
   padding: 0.5rem;
 }
 
-.ff-logo-layers-grid {
+.ff-logo-slices {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
   width: 320px;
-  overflow: visible;
-}
-
-.ff-logo-layer--1 {
+  overflow: hidden;
   background: hsl(var(--card));
   border: 1px solid hsl(var(--card-border));
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow:
     0 2px 8px hsl(var(--primary) / 0.1),
     0 0 0 1px hsl(var(--primary) / 0.08),
     0 8px 24px hsl(var(--primary) / 0.06);
-  padding: 0.875rem 1rem 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  will-change: transform;
 }
 
-.dark .ff-logo-layer--1 {
+.dark .ff-logo-slices {
   box-shadow:
     0 2px 12px hsl(var(--primary) / 0.18),
     0 0 0 1px hsl(var(--primary) / 0.14),
     0 8px 32px hsl(var(--primary) / 0.1);
+}
+
+.ff-logo-slice {
+  padding: 0.875rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.ff-logo-slice:last-child {
+  border-bottom: none;
 }
 
 .ff-logo-label {
@@ -1079,62 +1082,7 @@
   margin-bottom: 0.375rem;
 }
 
-/* Float keyframes */
-@keyframes ff-float-card-0 {
-  0%,
-  100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-18px) rotate(0.7deg);
-  }
-}
-@keyframes ff-float-card-1 {
-  0%,
-  100% {
-    transform: translateY(-6px) rotate(-0.5deg);
-  }
-  50% {
-    transform: translateY(14px) rotate(0.5deg);
-  }
-}
-@keyframes ff-float-card-2 {
-  0%,
-  100% {
-    transform: translateY(4px) rotate(0.6deg);
-  }
-  50% {
-    transform: translateY(-14px) rotate(-0.7deg);
-  }
-}
-@keyframes ff-float-card-3 {
-  0%,
-  100% {
-    transform: translateY(-3px) rotate(-0.4deg);
-  }
-  50% {
-    transform: translateY(16px) rotate(0.5deg);
-  }
-}
-
-@keyframes ff-ghost-front {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-28px);
-  }
-}
-@keyframes ff-ghost-back {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-16px);
-  }
-}
+/* (Float keyframes removed — slices layout) */
 
 /* ═══════════════════════════════════════════════════════════════
    TOUR SYSTEM
